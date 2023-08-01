@@ -359,15 +359,12 @@ public class SoftKeyboard extends InputMethodService
                     } else if (current == mSymbolsKeyboard) {
                         mInputView.setKeyboard(mSymbolsShiftedKeyboard);
                     } else if (current == mSymbolsShiftedKeyboard) {
-//                            mInputView.setKeyboard(mSymbolsKeyboard);
                         mInputView.setKeyboard(mQwertyKeyboard);
                     }
                     return true;
                 }
             }
-//            if (mPredictionOn && translateKeyDown(keyCode, event)) {
-//                return true;
-//            }
+
         }
 
         switch (keyCode) {
@@ -460,11 +457,7 @@ public class SoftKeyboard extends InputMethodService
      * Helper to determine if a given character code is alphabetic.
      */
     private boolean isAlphabet(int code) {
-        if (Character.isLetter(code)) {
-            return true;
-        } else {
-            return false;
-        }
+        return Character.isLetter(code);
     }
     
     /**

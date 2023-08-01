@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+**
+** Copyright 2008, The Android Open Source Project
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+*/
+-->
+
+<Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
+    android:keyWidth="10%p"
+    android:horizontalGap="0px"
+    android:verticalGap="0px"
+    android:keyHeight="@dimen/key_height"
+    >
+
+    <Row>
+        <Key android:codes="1" android:keyLabel="^c" android:keyWidth="50%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="2" android:keyLabel="^v" android:keyWidth="50%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+    </Row>
+    <Row>
+        <Key android:codes="1" android:keyLabel="1" android:keyWidth="33%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="9" android:keyLabel="2" android:keyWidth="33%p"/>
+        <Key android:codes="2" android:keyLabel="3" android:keyWidth="33%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+    </Row>
+    <Row>
+        <Key android:codes="1" android:keyLabel="4" android:keyWidth="33%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="9" android:keyLabel="5" android:keyWidth="33%p"/>
+        <Key android:codes="2" android:keyLabel="6" android:keyWidth="33%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+    </Row>
+    <Row>
+        <Key android:codes="1" android:keyLabel="7" android:keyWidth="33%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="9" android:keyLabel="8" android:keyWidth="33%p"/>
+        <Key android:codes="2" android:keyLabel="9" android:keyWidth="33%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+    </Row>
+    <Row android:rowEdgeFlags="bottom">
+        <Key android:codes="1" android:keyLabel="BCK" android:keyWidth="33%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="9" android:keyLabel="0" android:keyWidth="33%p"/>
+        <Key android:codes="2" android:keyLabel="OK" android:keyWidth="33%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+    </Row>
+</Keyboard>

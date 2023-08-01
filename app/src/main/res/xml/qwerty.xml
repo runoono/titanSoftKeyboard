@@ -27,9 +27,11 @@
 
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="1" android:keyLabel="L" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+<!--        <Key android:codes="9" android:keyLabel="^a" android:keyWidth="15%p"/>--> <!-- will do after alt and shift lock-->
         <Key android:codes="9" android:keyLabel="TAB" android:keyWidth="15%p"/>
         <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
-        <Key android:codes="4096" android:keyLabel="CTRL" android:keyWidth="15%p" android:isSticky="true"/>
+<!--        <Key android:codes="4096" android:keyLabel="^v" android:keyWidth="15%p"/>--> <!-- will do after alt and shift lock-->
+        <Key android:codes="9" android:keyLabel="CTRL" android:keyWidth="15%p"/>
         <Key android:codes="2" android:keyLabel="R" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
     </Row>
 
