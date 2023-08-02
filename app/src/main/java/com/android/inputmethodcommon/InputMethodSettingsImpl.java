@@ -66,17 +66,18 @@ import java.util.List;
                 .setOnPreferenceClickListener(new OnPreferenceClickListener() {
                     @Override
                     public boolean onPreferenceClick(Preference preference) {
-                        final CharSequence title = getSubtypeEnablerTitle(context);
-                        final Intent intent =
-                                new Intent(Settings.ACTION_INPUT_METHOD_SUBTYPE_SETTINGS);
-                        intent.putExtra(Settings.EXTRA_INPUT_METHOD_ID, mImi.getId());
-                        if (!TextUtils.isEmpty(title)) {
-                            intent.putExtra(Intent.EXTRA_TITLE, title);
-                        }
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                                | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        context.startActivity(intent);
+                        mImm.showInputMethodPicker();
+//                        final CharSequence title = getSubtypeEnablerTitle(context);
+//                        final Intent intent =
+//                                new Intent(Settings.ACTION_INPUT_METHOD_SUBTYPE_SETTINGS);
+//                        intent.putExtra(Settings.EXTRA_INPUT_METHOD_ID, mImi.getId());
+//                        if (!TextUtils.isEmpty(title)) {
+//                            intent.putExtra(Intent.EXTRA_TITLE, title);
+//                        }
+//                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+//                                | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+//                                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//                        context.startActivity(intent);
                         return true;
                     }
                 });
