@@ -21,7 +21,8 @@
 <!-- for the Search Manager. -->
 
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-        android:settingsActivity="com.runo.softkeyboard.ImePreferences"
+        android:settingsActivity="com.runo.softkeyboard.KeyboardSettings"
+
 >
     <subtype
         android:label="@string/label_subtype_generic"

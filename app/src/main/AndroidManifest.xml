@@ -1,14 +1,25 @@
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.runo.softkeyboard">
 
+    <application android:label="@string/ime_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.SoftKeyboard">
+        <activity
+            android:name=".KeyboardSettings"
+            android:exported="true"
+            android:label="@string/settings_name">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
 
-    <application android:label="@string/ime_name">
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+        </activity>
+
         <service
-            android:name="SoftKeyboard"
-            android:permission="android.permission.BIND_INPUT_METHOD"
-            android:exported="true">
-
+            android:name=".SoftKeyboard"
+            android:exported="true"
+            android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />
             </intent-filter>
@@ -18,14 +29,16 @@
                 android:resource="@xml/method" />
         </service>
 
-        <activity
-            android:name=".ImePreferences"
-            android:label="@string/settings_name"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+<!--        <activity-->
+<!--            android:name=".ImePreferences"-->
+<!--            android:exported="true"-->
+<!--            android:label="@string/settings_name">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
     </application>
+
 </manifest>
