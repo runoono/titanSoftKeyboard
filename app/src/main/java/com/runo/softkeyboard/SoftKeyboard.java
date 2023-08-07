@@ -43,7 +43,7 @@ import java.util.List;
  */
 public class SoftKeyboard extends InputMethodService 
         implements KeyboardView.OnKeyboardActionListener {
-    static final boolean DEBUG = false;
+//    static final boolean DEBUG = false;
     
     /**
      * This boolean indicates the optional example code for performing
@@ -53,17 +53,17 @@ public class SoftKeyboard extends InputMethodService
      * a QWERTY keyboard to Chinese), but may not be used for input methods
      * that are primarily intended to be used for on-screen text entry.
      */
-    static final boolean PROCESS_HARD_KEYS = true;
+//    static final boolean PROCESS_HARD_KEYS = true;
     private static final String TAG = "titan keyboard";
     private InputMethodManager mInputMethodManager;
 
     private LatinKeyboardView mInputView;
-    private CandidateView mCandidateView;
-    private CompletionInfo[] mCompletions;
+//    private CandidateView mCandidateView;
+//    private CompletionInfo[] mCompletions;
     
-    private StringBuilder mComposing = new StringBuilder();
+//    private StringBuilder mComposing = new StringBuilder();
 
-    private boolean mCompletionOn;
+//    private boolean mCompletionOn;
     private int mLastDisplayWidth;
 
     private LatinKeyboard mSymbolsKeyboard;
@@ -75,12 +75,10 @@ public class SoftKeyboard extends InputMethodService
 
     private String mWordSeparators;
 
-    private long lastShiftTime = 0l;
-    private long lastAltTime = 0l;
-
+    private long lastShiftTime = 0L;
+    private long lastAltTime = 0L;
     private boolean altLock = false;
     private boolean shiftLock = false;
-
     private boolean altShortcut = true;
     /**
      * Main initialization of the input method component.  Be sure to call
@@ -134,9 +132,9 @@ public class SoftKeyboard extends InputMethodService
      */
     @Override public View onCreateCandidatesView() {
         Log.d(TAG, "onCreateCandidatesView: ");
-        mCandidateView = new CandidateView(this);
-        mCandidateView.setService(this);
-        return mCandidateView;
+//        mCandidateView = new CandidateView(this);
+//        mCandidateView.setService(this);
+        return null;
     }
 
     /**
@@ -235,14 +233,14 @@ public class SoftKeyboard extends InputMethodService
         super.onFinishInput();
         
         // Clear current composing text and candidates.
-        mComposing.setLength(0);
-        updateCandidates();
+//        mComposing.setLength(0);
+//        updateCandidates();
         
         // We only hide the candidates window when finishing input on
         // a particular editor, to avoid popping the underlying application
         // up and down if the user is entering text into the bottom of
         // its window.
-        setCandidatesViewShown(false);
+//        setCandidatesViewShown(false);
         
         mCurKeyboard = mQwertyKeyboard;
         if (mInputView != null) {
@@ -255,7 +253,7 @@ public class SoftKeyboard extends InputMethodService
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
         mInputView.setKeyboard(mCurKeyboard);
-        mInputView.closing();
+//        mInputView.closing();
         final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
         mInputView.setSubtypeOnSpaceKey(subtype);
     }
@@ -278,15 +276,15 @@ public class SoftKeyboard extends InputMethodService
 
         // If the current selection in the text view changes, we should
         // clear whatever candidate text we have.
-        if (mComposing.length() > 0 && (newSelStart != candidatesEnd
-                || newSelEnd != candidatesEnd)) {
-            mComposing.setLength(0);
-            updateCandidates();
-            InputConnection ic = getCurrentInputConnection();
-            if (ic != null) {
-                ic.finishComposingText();
-            }
-        }
+//        if (mComposing.length() > 0 && (newSelStart != candidatesEnd
+//                || newSelEnd != candidatesEnd)) {
+//            mComposing.setLength(0);
+//            updateCandidates();
+//            InputConnection ic = getCurrentInputConnection();
+//            if (ic != null) {
+//                ic.finishComposingText();
+//            }
+//        }
     }
 
     /**
@@ -358,9 +356,23 @@ public class SoftKeyboard extends InputMethodService
         //note: this method is a bit spammy due to key repetition
         Log.d(TAG, "onKeyDown: "+keyCode);
 
-        if(altLock && keyCode == KeyEvent.KEYCODE_DEL ){ //dont sent alt+backspace with alt lock since it act like ctrl backspace, its annoying
+        if((altLock && keyCode == KeyEvent.KEYCODE_DEL) || mCurKeyboard == mNumericKeyboard){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
             keyDownUp(KeyEvent.KEYCODE_DEL);
             return true;
+        }
+
+        Keyboard current = mInputView.getKeyboard();
+        if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
+            try {
+                int pressedKey = translateKeyToIndex(keyCode);
+                if(pressedKey != -1 ){
+                    getCurrentInputConnection().commitText(
+                            String.valueOf((char) current.getKeys().get(pressedKey).codes[0]), 1);
+                    return true;
+                }
+            }catch (Exception e){
+                Log.e(TAG, "onKeyDown: ", e);
+            }
         }
 
 //        switch (keyCode) {
@@ -415,47 +427,55 @@ public class SoftKeyboard extends InputMethodService
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
 
-
         Log.d(TAG, "onKeyUp: "+keyCode);
-        
-        if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
-            if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
-                altShortcut = false;
-            }else{
-                if(altLock){
-                    Log.d(TAG, "onKeyUp: alt lock off");
-                    altLock = false;
-                    getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
-                    return true;
-                }else {//check for double tap
-                    if((System.currentTimeMillis() - lastAltTime) < 600L){
-                        Log.d(TAG, "onKeyUp: alt lock on");
-                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
-                        altLock = true;
+        Keyboard current = mInputView.getKeyboard();
+        if(current == mQwertyKeyboard){
+            if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
+                if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
+                    altShortcut = false;
+                }else{
+                    if(altLock){
+                        Log.d(TAG, "onKeyUp: alt lock off");
+                        altLock = false;
+                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
                         return true;
-                    }else{
-                        lastAltTime = System.currentTimeMillis();
+                    }else {//check for double tap
+                        if((System.currentTimeMillis() - lastAltTime) < 600L){
+                            Log.d(TAG, "onKeyUp: alt lock on");
+                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
+                            altLock = true;
+                            return true;
+                        }else{
+                            lastAltTime = System.currentTimeMillis();
+                        }
                     }
                 }
             }
-        }
 
-        if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-            if(shiftLock){
-                Log.d(TAG, "onKeyUp: shift lock off");
-                shiftLock = false;
-                getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
-                return true;
-            }else {//check for double tap
-                if((System.currentTimeMillis() - lastShiftTime) < 600L){
-                    Log.d(TAG, "onKeyUp: shift lock on");
-                    getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
-                    shiftLock = true;
+
+            if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
+                if(shiftLock){
+                    Log.d(TAG, "onKeyUp: shift lock off");
+                    shiftLock = false;
+                    getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
                     return true;
-                }else{
-                    lastShiftTime = System.currentTimeMillis();
+                }else {//check for double tap
+                    if((System.currentTimeMillis() - lastShiftTime) < 600L){
+                        Log.d(TAG, "onKeyUp: shift lock on");
+                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
+                        shiftLock = true;
+                        return true;
+                    }else{
+                        lastShiftTime = System.currentTimeMillis();
+                    }
                 }
             }
+        } else if (current == mNumericKeyboard) {
+
+        } else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
+//            int pressedIndex = translateKeyToIndex(keyCode);
+//            List<Keyboard.Key> list = current.getKeys();
+//            int c = list.get(pressedIndex).codes[0];
         }
 
         if (event.isAltPressed()) { //bindings for alt key
@@ -463,7 +483,6 @@ public class SoftKeyboard extends InputMethodService
                 //cycle through sym layers
                 InputConnection ic = getCurrentInputConnection();
                 if (ic != null) {
-                    Keyboard current = mInputView.getKeyboard();
                     if (current == mCurKeyboard) {
                         mInputView.setKeyboard(mSymbolsKeyboard);
                     } else if (current == mSymbolsKeyboard) {
@@ -478,19 +497,20 @@ public class SoftKeyboard extends InputMethodService
                 return true;
             }
         }
+
         return super.onKeyUp(keyCode, event);
     }
 
     /**
      * Helper function to commit any text being composed in to the editor.
      */
-    private void commitTyped(InputConnection inputConnection) {
+//    private void commitTyped(InputConnection inputConnection) {
 //        if (mComposing.length() > 0) {
 //            inputConnection.commitText(mComposing, mComposing.length());
 //            mComposing.setLength(0);
 //            updateCandidates();
 //        }
-    }
+//    }
 
     /**
      * Helper to update the shift state of our keyboard based on the initial
@@ -546,7 +566,7 @@ public class SoftKeyboard extends InputMethodService
     // Implementation of KeyboardViewListener
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
-        Log.d(TAG, "onKey: ");
+        Log.d(TAG, "onKey: "+primaryCode);
 //        if (isWordSeparator(primaryCode)) {
 //            // Handle separator
 //            if (mComposing.length() > 0) {
@@ -555,9 +575,10 @@ public class SoftKeyboard extends InputMethodService
 //            sendKey(primaryCode);
 //            updateShiftKeyState(getCurrentInputEditorInfo());
 //        } else
-        if (primaryCode == Keyboard.KEYCODE_DELETE) {
-            handleBackspace();
-        } else if (primaryCode == Keyboard.KEYCODE_SHIFT) {
+//        if (primaryCode == Keyboard.KEYCODE_DELETE) {
+////            handleBackspace();
+//        } else
+        if (primaryCode == Keyboard.KEYCODE_SHIFT) {
             handleShift();
         } else if (primaryCode == Keyboard.KEYCODE_CANCEL) {
             handleClose();
@@ -596,6 +617,7 @@ public class SoftKeyboard extends InputMethodService
         }
     }
 
+    @Override
     public void onText(CharSequence text) {
 //        InputConnection ic = getCurrentInputConnection();
 //        if (ic == null) return;
@@ -613,7 +635,7 @@ public class SoftKeyboard extends InputMethodService
      * text.  This will need to be filled in by however you are determining
      * candidates.
      */
-    private void updateCandidates() {
+//    private void updateCandidates() {
 //        if (!mCompletionOn) {
 //            if (mComposing.length() > 0) {
 //                ArrayList<String> list = new ArrayList<String>();
@@ -623,10 +645,10 @@ public class SoftKeyboard extends InputMethodService
 //                setSuggestions(null, false, false);
 //            }
 //        }
-    }
+//    }
     
-    public void setSuggestions(List<String> suggestions, boolean completions,
-            boolean typedWordValid) {
+//    public void setSuggestions(List<String> suggestions, boolean completions,
+//            boolean typedWordValid) {
 //        if (suggestions != null && suggestions.size() > 0) {
 //            setCandidatesViewShown(true);
 //        } else if (isExtractViewShown()) {
@@ -635,9 +657,9 @@ public class SoftKeyboard extends InputMethodService
 //        if (mCandidateView != null) {
 //            mCandidateView.setSuggestions(suggestions, completions, typedWordValid);
 //        }
-    }
+//    }
     
-    private void handleBackspace() {
+//    private void handleBackspace() {
 //        final int length = mComposing.length();
 //        if (length > 1) {
 //            mComposing.delete(length - 1, length);
@@ -651,7 +673,7 @@ public class SoftKeyboard extends InputMethodService
 //            keyDownUp(KeyEvent.KEYCODE_DEL);
 //        }
 //        updateShiftKeyState(getCurrentInputEditorInfo());
-    }
+//    }
 
     private void handleShift() {
         if (mInputView == null) {
@@ -695,7 +717,7 @@ public class SoftKeyboard extends InputMethodService
     }
 
     private void handleClose() {
-        commitTyped(getCurrentInputConnection());
+//        commitTyped(getCurrentInputConnection());
         requestHideSelf(0);
         mInputView.closing();
     }
@@ -704,14 +726,14 @@ public class SoftKeyboard extends InputMethodService
         return mWordSeparators;
     }
     
-    public boolean isWordSeparator(int code) {
-        String separators = getWordSeparators();
-        return separators.contains(String.valueOf((char)code));
-    }
+//    public boolean isWordSeparator(int code) {
+//        String separators = getWordSeparators();
+//        return separators.contains(String.valueOf((char)code));
+//    }
 
-    public void pickDefaultCandidate() {
-        pickSuggestionManually(0);
-    }
+//    public void pickDefaultCandidate() {
+//        pickSuggestionManually(0);
+//    }
     
     public void pickSuggestionManually(int index) {
 //        if (mCompletionOn && mCompletions != null && index >= 0
@@ -731,25 +753,119 @@ public class SoftKeyboard extends InputMethodService
     }
     
     public void swipeRight() {
-//        if (mCompletionOn) {
-//            pickDefaultCandidate();
-//        }
+        Log.d(TAG, "swipeRight: ");
     }
-    
+
     public void swipeLeft() {
-//        handleBackspace();
+        Log.d(TAG, "swipeLeft: ");
     }
 
     public void swipeDown() {
-//        handleClose();
+        Log.d(TAG, "swipeDown: ");
     }
 
     public void swipeUp() {
+        Log.d(TAG, "swipeUp: ");
     }
-    
+
     public void onPress(int primaryCode) {
+        Log.d(TAG, "onPress: ");
     }
-    
+
     public void onRelease(int primaryCode) {
+        Log.d(TAG, "onRelease: ");
     }
+
+    public int translateKeyToIndex(int keyCode){
+        Log.i(TAG, "translateKeyToIndex: "+keyCode);
+        int index = -1; //used for bcksp alt etc, keys I dont wanna remap
+        switch (keyCode){
+            case KeyEvent.KEYCODE_Q://row 3
+                index = 0;
+                break;
+            case KeyEvent.KEYCODE_W:
+                index = 1;
+                break;
+            case KeyEvent.KEYCODE_E:
+                index = 2;
+                break;
+            case KeyEvent.KEYCODE_R:
+                index = 3;
+                break;
+            case KeyEvent.KEYCODE_T:
+                index = 4;
+                break;
+            case KeyEvent.KEYCODE_Y:
+                index = 5;
+                break;
+            case KeyEvent.KEYCODE_U:
+                index = 6;
+                break;
+            case KeyEvent.KEYCODE_I:
+                index = 7;
+                break;
+            case KeyEvent.KEYCODE_O:
+                index = 8;
+                break;
+            case KeyEvent.KEYCODE_P:
+                index = 9;
+                break;
+            case KeyEvent.KEYCODE_A://row 2
+                index = 10;
+                break;
+            case KeyEvent.KEYCODE_S:
+                index = 11;
+                break;
+            case KeyEvent.KEYCODE_D:
+                index = 12;
+                break;
+            case KeyEvent.KEYCODE_F:
+                index = 13;
+                break;
+            case KeyEvent.KEYCODE_G:
+                index = 14;
+                break;
+            case KeyEvent.KEYCODE_H:
+                index = 15;
+                break;
+            case KeyEvent.KEYCODE_J:
+                index = 16;
+                break;
+            case KeyEvent.KEYCODE_K:
+                index = 17;
+                break;
+            case KeyEvent.KEYCODE_L:
+                index = 18;
+                break;
+//            case KeyEvent.KEYCODE_DEL:
+//                index = 19;
+//                break;
+            case KeyEvent.KEYCODE_Z://row 3
+                index = 20;
+                break;
+            case KeyEvent.KEYCODE_X:
+                index = 21;
+                break;
+            case KeyEvent.KEYCODE_C:
+                index = 22;
+                break;
+            case KeyEvent.KEYCODE_V:
+                index = 23;
+                break;
+            case KeyEvent.KEYCODE_B:
+                index = 24;
+                break;
+            case KeyEvent.KEYCODE_N:
+                index = 25;
+                break;
+            case KeyEvent.KEYCODE_M:
+                index = 26;
+                break;
+//            case KeyEvent.KEYCODE_ENTER:
+//                index = 27;
+//                break;
+        }
+        return index;
+    }
+
 }
