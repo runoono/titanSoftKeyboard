@@ -60,7 +60,7 @@ public class SoftKeyboard extends InputMethodService
 //    private StringBuilder mComposing = new StringBuilder();
 
 //    private boolean mCompletionOn;
-    private int mLastDisplayWidth;
+//    private int mLastDisplayWidth;
 
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
@@ -153,10 +153,10 @@ public class SoftKeyboard extends InputMethodService
 //        mComposing.setLength(0);
 //        updateCandidates();
 
-        if (!restarting) {
+//        if (!restarting) {
             // Clear shift states.
 //            mMetaState = 0;
-        }
+//        }
         
 //        mPredictionOn = false;
 //        mCompletionOn = false;
@@ -181,7 +181,7 @@ public class SoftKeyboard extends InputMethodService
                 
                 // We now look for a few special variations of text that will
                 // modify our behavior.
-                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
+//                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
 //                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
 //                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
                     // Do not display predictions / what the user is typing
@@ -522,7 +522,7 @@ public class SoftKeyboard extends InputMethodService
      * Helper to update the shift state of our keyboard based on the initial
      * editor state.
      */
-    private void updateShiftKeyState(EditorInfo attr) {
+//    private void updateShiftKeyState(EditorInfo attr) {
 //        if (attr != null
 //                && mInputView != null && mQwertyKeyboard == mInputView.getKeyboard()) {
 //            int caps = 0;
@@ -532,7 +532,7 @@ public class SoftKeyboard extends InputMethodService
 //            }
 //            mInputView.setShifted(mCapsLock || caps != 0);
 //        }
-    }
+//    }
     
     /**
      * Helper to determine if a given character code is alphabetic.
@@ -614,8 +614,8 @@ public class SoftKeyboard extends InputMethodService
         }
         else if (primaryCode == 4096){
             Log.d("keeyb", "onKey: ");
-            Keyboard current = mInputView.getKeyboard();
-            List<Keyboard.Key> mods = current.getModifierKeys();
+//            Keyboard current = mInputView.getKeyboard();
+//            List<Keyboard.Key> mods = current.getModifierKeys();
             Log.d("keeyb", "onKey: ");
         }
         else {
@@ -741,7 +741,7 @@ public class SoftKeyboard extends InputMethodService
 //        pickSuggestionManually(0);
 //    }
     
-    public void pickSuggestionManually(int index) {
+//    public void pickSuggestionManually(int index) {
 //        if (mCompletionOn && mCompletions != null && index >= 0
 //                && index < mCompletions.length) {
 //            CompletionInfo ci = mCompletions[index];
@@ -756,7 +756,7 @@ public class SoftKeyboard extends InputMethodService
 //            // we will just commit the current text.
 //            commitTyped(getCurrentInputConnection());
 //        }
-    }
+//    }
     
     public void swipeRight() {
         Log.d(TAG, "swipeRight: ");
