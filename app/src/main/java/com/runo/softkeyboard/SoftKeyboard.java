@@ -20,18 +20,14 @@ import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.text.InputType;
-import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
-import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -73,7 +69,7 @@ public class SoftKeyboard extends InputMethodService
 
     private LatinKeyboard mCurKeyboard;
 
-    private String mWordSeparators;
+//    private String mWordSeparators;
 
     private long lastShiftTime = 0L;
     private long lastAltTime = 0L;
@@ -88,23 +84,25 @@ public class SoftKeyboard extends InputMethodService
         Log.d(TAG, "onCreate: ");
         super.onCreate();
         mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
-        mWordSeparators = getResources().getString(R.string.word_separators);
+//        mWordSeparators = getResources().getString(R.string.word_separators);
     }
     
     /**
      * This is the point where you can do all of your UI initialization.  It
      * is called after creation and any configuration change.
      */
-    @Override public void onInitializeInterface() {
+    @Override
+    public void onInitializeInterface() {
         Log.d(TAG, "onInitializeInterface: ");
-        if (mQwertyKeyboard != null) {
-            // Configuration changes can happen after the keyboard gets recreated,
-            // so we need to be able to re-build the keyboards if the available
-            // space has changed.
-            int displayWidth = getMaxWidth();
-            if (displayWidth == mLastDisplayWidth) return;
-            mLastDisplayWidth = displayWidth;
-        }
+//        if (mQwertyKeyboard != null) {
+//            // Configuration changes can happen after the keyboard gets recreated,
+//            // so we need to be able to re-build the keyboards if the available
+//            // space has changed.
+//            int displayWidth = getMaxWidth();
+//            if (displayWidth == mLastDisplayWidth) return;
+//            mLastDisplayWidth = displayWidth;
+//        }
+
         mQwertyKeyboard = new LatinKeyboard(this, R.xml.qwerty);
         mSymbolsKeyboard = new LatinKeyboard(this, R.xml.symbols);
         mSymbolsShiftedKeyboard = new LatinKeyboard(this, R.xml.symbols_shift);
@@ -117,7 +115,8 @@ public class SoftKeyboard extends InputMethodService
      * is displayed, and every time it needs to be re-created such as due to
      * a configuration change.
      */
-    @Override public View onCreateInputView() {
+    @Override
+    public View onCreateInputView() {
         Log.d(TAG, "onCreateInputView: ");
         mInputView = (LatinKeyboardView) getLayoutInflater().inflate(
                 R.layout.input, null);
@@ -130,7 +129,8 @@ public class SoftKeyboard extends InputMethodService
      * Called by the framework when your view for showing candidates needs to
      * be generated, like {@link #onCreateInputView}.
      */
-    @Override public View onCreateCandidatesView() {
+    @Override
+    public View onCreateCandidatesView() {
         Log.d(TAG, "onCreateCandidatesView: ");
 //        mCandidateView = new CandidateView(this);
 //        mCandidateView.setService(this);
@@ -143,7 +143,8 @@ public class SoftKeyboard extends InputMethodService
      * bound to the client, and are now receiving all of the detailed information
      * about the target of our edits.
      */
-    @Override public void onStartInput(EditorInfo attribute, boolean restarting) {
+    @Override
+    public void onStartInput(EditorInfo attribute, boolean restarting) {
         Log.d(TAG, "onStartInput: ");
         super.onStartInput(attribute, restarting);
         
@@ -228,7 +229,8 @@ public class SoftKeyboard extends InputMethodService
      * This is called when the user is done editing a field.  We can use
      * this to reset our state.
      */
-    @Override public void onFinishInput() {
+    @Override
+    public void onFinishInput() {
         Log.d(TAG, "onFinishInput: ");
         super.onFinishInput();
         
@@ -248,7 +250,8 @@ public class SoftKeyboard extends InputMethodService
         }
     }
     
-    @Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
+    @Override
+    public void onStartInputView(EditorInfo attribute, boolean restarting) {
         Log.d(TAG, "onStartInputView: ");
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
@@ -267,7 +270,8 @@ public class SoftKeyboard extends InputMethodService
     /**
      * Deal with the editor reporting movement of its cursor.
      */
-    @Override public void onUpdateSelection(int oldSelStart, int oldSelEnd,
+    @Override
+    public void onUpdateSelection(int oldSelStart, int oldSelEnd,
             int newSelStart, int newSelEnd,
             int candidatesStart, int candidatesEnd) {
         Log.d(TAG, "onUpdateSelection: ");
@@ -352,7 +356,8 @@ public class SoftKeyboard extends InputMethodService
      * We get first crack at them, and can either resume them or let them
      * continue to the app.
      */
-    @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
         //note: this method is a bit spammy due to key repetition
         Log.d(TAG, "onKeyDown: "+keyCode);
 
@@ -422,7 +427,8 @@ public class SoftKeyboard extends InputMethodService
      * We get first crack at them, and can either resume them or let them
      * continue to the app.
      */
-    @Override public boolean onKeyUp(int keyCode, KeyEvent event) { //pkb key up
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) { //pkb key up
         // If we want to do transformations on text being entered with a hard
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
@@ -722,9 +728,9 @@ public class SoftKeyboard extends InputMethodService
         mInputView.closing();
     }
 
-    private String getWordSeparators() {
-        return mWordSeparators;
-    }
+//    private String getWordSeparators() {
+//        return mWordSeparators;
+//    }
     
 //    public boolean isWordSeparator(int code) {
 //        String separators = getWordSeparators();
