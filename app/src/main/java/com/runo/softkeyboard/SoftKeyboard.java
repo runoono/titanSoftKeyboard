@@ -16,9 +16,12 @@
 
 package com.runo.softkeyboard;
 
+import android.content.Context;
 import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -75,7 +78,8 @@ public class SoftKeyboard extends InputMethodService
     private long lastAltTime = 0L;
     private boolean altLock = false;
     private boolean shiftLock = false;
-    private boolean altShortcut = true;
+    private boolean altShortcut = false;
+    private boolean keyboardViewRequested = false;
     /**
      * Main initialization of the input method component.  Be sure to call
      * to super class.
@@ -233,7 +237,10 @@ public class SoftKeyboard extends InputMethodService
     public void onFinishInput() {
         Log.d(TAG, "onFinishInput: ");
         super.onFinishInput();
-        
+        altLock = false;
+        shiftLock = false;
+        altShortcut=false;
+        keyboardViewRequested = false;
         // Clear current composing text and candidates.
 //        mComposing.setLength(0);
 //        updateCandidates();
@@ -244,7 +251,7 @@ public class SoftKeyboard extends InputMethodService
         // its window.
 //        setCandidatesViewShown(false);
         
-        mCurKeyboard = mQwertyKeyboard;
+//        mCurKeyboard = mQwertyKeyboard;
         if (mInputView != null) {
             mInputView.closing();
         }
@@ -253,6 +260,7 @@ public class SoftKeyboard extends InputMethodService
     @Override
     public void onStartInputView(EditorInfo attribute, boolean restarting) {
         Log.d(TAG, "onStartInputView: ");
+        keyboardViewRequested = true;
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
         mInputView.setKeyboard(mCurKeyboard);
@@ -361,13 +369,13 @@ public class SoftKeyboard extends InputMethodService
         //note: this method is a bit spammy due to key repetition
         Log.d(TAG, "onKeyDown: "+keyCode);
 
-        if((altLock && keyCode == KeyEvent.KEYCODE_DEL) || mCurKeyboard == mNumericKeyboard){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
+        if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
             keyDownUp(KeyEvent.KEYCODE_DEL);
             return true;
         }
 
         Keyboard current = mInputView.getKeyboard();
-        if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
+        if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {
             try {
                 int pressedKey = translateKeyToIndex(keyCode);
                 if(pressedKey != -1 ){
@@ -437,19 +445,27 @@ public class SoftKeyboard extends InputMethodService
         Keyboard current = mInputView.getKeyboard();
         if(current == mQwertyKeyboard){
             if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
+                getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+                shiftLock = false;
                 if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
                     altShortcut = false;
                 }else{
                     if(altLock){
-                        Log.d(TAG, "onKeyUp: alt lock off");
-                        altLock = false;
-                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
-                        return true;
+                        if((System.currentTimeMillis() - lastAltTime) > 300L){
+                            Log.d(TAG, "onKeyUp: alt lock off");
+                            altLock = false;
+                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
+                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                            return true;
+                        }
                     }else {//check for double tap
-                        if((System.currentTimeMillis() - lastAltTime) < 600L){
+                        if((System.currentTimeMillis() - lastAltTime) < 800L){
                             Log.d(TAG, "onKeyUp: alt lock on");
-                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
                             altLock = true;
+                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                            v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
+                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
                             return true;
                         }else{
                             lastAltTime = System.currentTimeMillis();
@@ -460,14 +476,22 @@ public class SoftKeyboard extends InputMethodService
 
 
             if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
+                getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
+                altLock = false;
                 if(shiftLock){
-                    Log.d(TAG, "onKeyUp: shift lock off");
-                    shiftLock = false;
-                    getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
-                    return true;
+                    if((System.currentTimeMillis() - lastShiftTime) > 300L){
+                        Log.d(TAG, "onKeyUp: shift lock off");
+                        shiftLock = false;
+                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                        v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                        return true;
+                    }
                 }else {//check for double tap
-                    if((System.currentTimeMillis() - lastShiftTime) < 600L){
+                    if((System.currentTimeMillis() - lastShiftTime) < 800L){
                         Log.d(TAG, "onKeyUp: shift lock on");
+                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                        v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
                         getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
                         shiftLock = true;
                         return true;
@@ -477,7 +501,7 @@ public class SoftKeyboard extends InputMethodService
                 }
             }
         } else if (current == mNumericKeyboard) {
-
+            return super.onKeyUp(keyCode, event);
         } else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
 //            int pressedIndex = translateKeyToIndex(keyCode);
 //            List<Keyboard.Key> list = current.getKeys();
@@ -499,10 +523,17 @@ public class SoftKeyboard extends InputMethodService
                     ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
 
                 }
-                altShortcut = true;
                 return true;
             }
+            altShortcut = true;
         }
+//        if (keyCode == KeyEvent.KEYCODE_BACK){
+//            handleClose();
+//        }
+
+        if(keyboardViewRequested)
+            if(!isInputViewShown())
+                requestShowSelf(0);
 
         return super.onKeyUp(keyCode, event);
     }
@@ -726,6 +757,7 @@ public class SoftKeyboard extends InputMethodService
 //        commitTyped(getCurrentInputConnection());
         requestHideSelf(0);
         mInputView.closing();
+
     }
 
 //    private String getWordSeparators() {
@@ -780,6 +812,8 @@ public class SoftKeyboard extends InputMethodService
 
     public void onRelease(int primaryCode) {
         Log.d(TAG, "onRelease: ");
+        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        v.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
     }
 
     public int translateKeyToIndex(int keyCode){
