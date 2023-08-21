@@ -601,7 +601,10 @@ public class SoftKeyboard extends InputMethodService
         else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
                 && mInputView != null) {
             Keyboard current = mInputView.getKeyboard();
-            if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {
+            if(current == mSymbolsKeyboard ){
+                current = mSymbolsShiftedKeyboard;
+            }
+            else if (current == mSymbolsShiftedKeyboard) {
                 current = mQwertyKeyboard;
             } else {
                 current = mSymbolsKeyboard;
@@ -866,14 +869,17 @@ public class SoftKeyboard extends InputMethodService
             case KeyEvent.KEYCODE_V:
                 index = 23;
                 break;
+//            case KeyEvent.KEYCODE_SPACE:
+//                index = 24;
+//                break;
             case KeyEvent.KEYCODE_B:
-                index = 24;
-                break;
-            case KeyEvent.KEYCODE_N:
                 index = 25;
                 break;
-            case KeyEvent.KEYCODE_M:
+            case KeyEvent.KEYCODE_N:
                 index = 26;
+                break;
+            case KeyEvent.KEYCODE_M:
+                index = 27;
                 break;
 //            case KeyEvent.KEYCODE_ENTER:
 //                index = 27;
