@@ -31,6 +31,7 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
+import java.security.Key;
 import java.util.List;
 
 /**
@@ -388,47 +389,26 @@ public class SoftKeyboard extends InputMethodService
             }
         }
 
-//        switch (keyCode) {
-//            case KeyEvent.META_CTRL_ON: //dont got one of these lol
-//                    break;
+        if((event.isShiftPressed() && keyCode != KeyEvent.KEYCODE_SHIFT_LEFT)){
+            return super.onKeyDown(keyCode, event);
+        }
 
-//            case KeyEvent.KEYCODE_BACK:
-//                // The InputMethodService already takes care of the back
-//                // key for us, to dismiss the input method if it is shown.
-//                // However, our keyboard could be showing a pop-up window
-//                // that back should dismiss, so we first allow it to do that.
-//                if (event.getRepeatCount() == 0 && mInputView != null) {
-//                    if (mInputView.handleBack()) {
-//                        return true;
-//                    }
-//                }
-//                break;
-                
-//            case KeyEvent.KEYCODE_DEL: //dont got one of these either
-//                // Special handling of the delete key: if we currently are
-//                // composing text for the user, we want to modify that instead
-//                // of let the application to the delete itself.
-//                if (mComposing.length() > 0) {
-//                    onKey(Keyboard.KEYCODE_DELETE, null);
-//                    return true;
-//                }
-//                break;
-                
-//            case KeyEvent.KEYCODE_ENTER:
-//                // Let the underlying text editor always handle these.
-//                return false;
-                
-//            default:
-                // For all other keys, if we want to do transformations on
-                // text being entered with a hard keyboard, we need to process
-                // it and do the appropriate action.
-
-//        }
-        
+        if(altLock){ //termux, kuroba, etc fix
+            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), 34, event.getDeviceId(), event.getScanCode());
+            getCurrentInputConnection().sendKeyEvent(ke);
+            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+            getCurrentInputConnection().sendKeyEvent(ke);
+            return true;
+        } else if (shiftLock) {
+            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), 65, event.getDeviceId(), event.getScanCode());
+            getCurrentInputConnection().sendKeyEvent(ke);
+            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+            getCurrentInputConnection().sendKeyEvent(ke);
+            return true;
+        }
         return super.onKeyDown(keyCode, event);
 //        return false;
     }
-
 
     /**
      * Use this to monitor key events being delivered to the application.
@@ -465,7 +445,7 @@ public class SoftKeyboard extends InputMethodService
                             altLock = true;
                             Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                             v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
-                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
+//                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
                             return true;
                         }else{
                             lastAltTime = System.currentTimeMillis();
@@ -531,9 +511,9 @@ public class SoftKeyboard extends InputMethodService
 //            handleClose();
 //        }
 
-        if(keyboardViewRequested)
-            if(!isInputViewShown())
-                requestShowSelf(0);
+//        if(keyboardViewRequested)
+//            if(!isInputViewShown())
+//                requestShowSelf(0);
 
         return super.onKeyUp(keyCode, event);
     }
@@ -565,13 +545,7 @@ public class SoftKeyboard extends InputMethodService
 //        }
 //    }
     
-    /**
-     * Helper to determine if a given character code is alphabetic.
-     */
-//    private boolean isAlphabet(int code) {
-//        return Character.isLetter(code);
-//    }
-    
+
     /**
      * Helper to send a key down / key up pair to the current editor.
      */
