@@ -80,6 +80,7 @@ public class SoftKeyboard extends InputMethodService
     private boolean altLock = false;
     private boolean shiftLock = false;
     private boolean altShortcut = false;
+    private boolean shiftShortcut = false;
     private boolean keyboardViewRequested = false;
     /**
      * Main initialization of the input method component.  Be sure to call
@@ -375,6 +376,16 @@ public class SoftKeyboard extends InputMethodService
             return true;
         }
 
+//        if (event.isShiftPressed()) {
+//            if(keyCode != KeyEvent.KEYCODE_SHIFT_LEFT){
+//                shiftShortcut = true;
+//                if(keyCode == KeyEvent.KEYCODE_DEL){
+//                    keyDownUp(KeyEvent.KEYCODE_FORWARD_DEL); // del
+//                }
+//                return false;
+//            }
+//        }
+
         Keyboard current = mInputView.getKeyboard();
         if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {
             try {
@@ -406,6 +417,8 @@ public class SoftKeyboard extends InputMethodService
             getCurrentInputConnection().sendKeyEvent(ke);
             return true;
         }
+
+
         return super.onKeyDown(keyCode, event);
 //        return false;
     }
@@ -458,55 +471,71 @@ public class SoftKeyboard extends InputMethodService
             if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
                 getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
                 altLock = false;
-                if(shiftLock){
-                    if((System.currentTimeMillis() - lastShiftTime) > 300L){
-                        Log.d(TAG, "onKeyUp: shift lock off");
-                        shiftLock = false;
-                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
-                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                        v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
-                        return true;
-                    }
-                }else {//check for double tap
-                    if((System.currentTimeMillis() - lastShiftTime) < 800L){
-                        Log.d(TAG, "onKeyUp: shift lock on");
-                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                        v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
-                        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
-                        shiftLock = true;
-                        return true;
-                    }else{
-                        lastShiftTime = System.currentTimeMillis();
+                if(shiftShortcut){
+                    shiftShortcut = false;
+                }else{
+                    if(shiftLock){
+                        if((System.currentTimeMillis() - lastShiftTime) > 300L){
+                            Log.d(TAG, "onKeyUp: shift lock off");
+                            shiftLock = false;
+                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                            return true;
+                        }
+                    }else {//check for double tap
+                        if((System.currentTimeMillis() - lastShiftTime) < 800L){
+                            Log.d(TAG, "onKeyUp: shift lock on");
+                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                            v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
+                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
+                            shiftLock = true;
+                            return true;
+                        }else{
+                            lastShiftTime = System.currentTimeMillis();
+                        }
                     }
                 }
             }
         } else if (current == mNumericKeyboard) {
             return super.onKeyUp(keyCode, event);
-        } else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
+        }
+//        else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
 //            int pressedIndex = translateKeyToIndex(keyCode);
 //            List<Keyboard.Key> list = current.getKeys();
 //            int c = list.get(pressedIndex).codes[0];
-        }
+//        }
 
         if (event.isAltPressed()) { //bindings for alt key
-            if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
-                //cycle through sym layers
-                InputConnection ic = getCurrentInputConnection();
-                if (ic != null) {
-                    if (current == mCurKeyboard) {
-                        mInputView.setKeyboard(mSymbolsKeyboard);
-                    } else if (current == mSymbolsKeyboard) {
-                        mInputView.setKeyboard(mSymbolsShiftedKeyboard);
-                    } else if (current == mSymbolsShiftedKeyboard) {
-                        mInputView.setKeyboard(mCurKeyboard);
-                    }
-                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
+            if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
+                altShortcut = true;
+                if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
+                    //cycle through sym layers
+                    InputConnection ic = getCurrentInputConnection();
+                    if (ic != null) {
+                        if (current == mCurKeyboard) {
+                            mInputView.setKeyboard(mSymbolsKeyboard);
+                        } else if (current == mSymbolsKeyboard) {
+                            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
+                        } else if (current == mSymbolsShiftedKeyboard) {
+                            mInputView.setKeyboard(mCurKeyboard);
+                        }
+                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
 
+                    }
                 }
                 return true;
             }
-            altShortcut = true;
         }
+//        else if (event.isShiftPressed()) {
+//            if(keyCode != KeyEvent.KEYCODE_SHIFT_LEFT){
+//                shiftShortcut = true;
+////                if(keyCode == KeyEvent.KEYCODE_DEL){
+////                    keyDownUp(KeyEvent.KEYCODE_FORWARD_DEL); // del
+////                }
+//                return false;
+//            }
+//        }
 //        if (keyCode == KeyEvent.KEYCODE_BACK){
 //            handleClose();
 //        }
