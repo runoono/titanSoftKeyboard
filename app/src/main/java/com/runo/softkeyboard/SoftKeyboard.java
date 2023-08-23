@@ -82,6 +82,8 @@ public class SoftKeyboard extends InputMethodService
     private boolean altShortcut = false;
     private boolean shiftShortcut = false;
     private boolean keyboardViewRequested = false;
+
+    private int mActionType = -1;
     /**
      * Main initialization of the input method component.  Be sure to call
      * to super class.
@@ -228,7 +230,25 @@ public class SoftKeyboard extends InputMethodService
         
         // Update the label on the enter key, depending on what the application
         // says it will do.
-        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions);
+        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //future note by runoono, I am dumb lol
+        int actionType = attribute.imeOptions;
+        switch (actionType&(EditorInfo.IME_MASK_ACTION|EditorInfo.IME_FLAG_NO_ENTER_ACTION)) {
+            case EditorInfo.IME_ACTION_GO:
+                mActionType = EditorInfo.IME_ACTION_GO;
+                break;
+            case EditorInfo.IME_ACTION_NEXT:
+                mActionType = EditorInfo.IME_ACTION_NEXT;
+                break;
+            case EditorInfo.IME_ACTION_SEARCH:
+                mActionType = EditorInfo.IME_ACTION_SEARCH;
+                break;
+            case EditorInfo.IME_ACTION_SEND:
+                mActionType = EditorInfo.IME_ACTION_SEND;
+                break;
+            default:
+                mActionType = -1; //just send enter
+                break;
+        }
     }
 
     /**
@@ -242,7 +262,7 @@ public class SoftKeyboard extends InputMethodService
         altLock = false;
         shiftLock = false;
         altShortcut=false;
-        keyboardViewRequested = false;
+//        keyboardViewRequested = false;
         // Clear current composing text and candidates.
 //        mComposing.setLength(0);
 //        updateCandidates();
@@ -301,12 +321,12 @@ public class SoftKeyboard extends InputMethodService
 //        }
     }
 
-    /**
-     * This tells us about completions that the editor has determined based
-     * on the current text in it.  We want to use this in fullscreen mode
-     * to show the completions ourself, since the editor can not be seen
-     * in that situation.
-     */
+//    /**
+//     * This tells us about completions that the editor has determined based
+//     * on the current text in it.  We want to use this in fullscreen mode
+//     * to show the completions ourself, since the editor can not be seen
+//     * in that situation.
+//     */
 //    @Override public void onDisplayCompletions(CompletionInfo[] completions) {
 //        Log.d(TAG, "onDisplayCompletions: ");
 //        if (mCompletionOn) {
@@ -324,11 +344,11 @@ public class SoftKeyboard extends InputMethodService
 //        }
 //    }
     
-    /**
-     * This translates incoming hard key events in to edit operations on an
-     * InputConnection.  It is only needed when using the
-     * PROCESS_HARD_KEYS option.
-     */
+//    /**
+//     * This translates incoming hard key events in to edit operations on an
+//     * InputConnection.  It is only needed when using the
+//     * PROCESS_HARD_KEYS option.
+//     */
 //    private boolean translateKeyDown(int keyCode, KeyEvent event) {
 //        mMetaState = MetaKeyKeyListener.handleKeyDown(mMetaState,
 //                keyCode, event);
@@ -391,8 +411,13 @@ public class SoftKeyboard extends InputMethodService
             try {
                 int pressedKey = translateKeyToIndex(keyCode);
                 if(pressedKey != -1 ){
+                    int code = current.getKeys().get(pressedKey).codes[0];
+                    if (code == 10 && mActionType != -1){
+                        getCurrentInputConnection().performEditorAction(mActionType);
+                        return true;
+                    }
                     getCurrentInputConnection().commitText(
-                            String.valueOf((char) current.getKeys().get(pressedKey).codes[0]), 1);
+                            String.valueOf((char) code), 1);
                     return true;
                 }
             }catch (Exception e){
@@ -547,9 +572,9 @@ public class SoftKeyboard extends InputMethodService
         return super.onKeyUp(keyCode, event);
     }
 
-    /**
-     * Helper function to commit any text being composed in to the editor.
-     */
+//    /**
+//     * Helper function to commit any text being composed in to the editor.
+//     */
 //    private void commitTyped(InputConnection inputConnection) {
 //        if (mComposing.length() > 0) {
 //            inputConnection.commitText(mComposing, mComposing.length());
@@ -558,10 +583,10 @@ public class SoftKeyboard extends InputMethodService
 //        }
 //    }
 
-    /**
-     * Helper to update the shift state of our keyboard based on the initial
-     * editor state.
-     */
+//    /**
+//     * Helper to update the shift state of our keyboard based on the initial
+//     * editor state.
+//     */
 //    private void updateShiftKeyState(EditorInfo attr) {
 //        if (attr != null
 //                && mInputView != null && mQwertyKeyboard == mInputView.getKeyboard()) {
@@ -585,9 +610,9 @@ public class SoftKeyboard extends InputMethodService
                 new KeyEvent(KeyEvent.ACTION_UP, keyEventCode));
     }
     
-    /**
-     * Helper to send a character to the editor as raw key events.
-     */
+//    /**
+//     * Helper to send a character to the editor as raw key events.
+//     */
 //    private void sendKey(int keyCode) {
 //        switch (keyCode) {
 //            case '\n':
@@ -607,6 +632,7 @@ public class SoftKeyboard extends InputMethodService
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
         Log.d(TAG, "onKey: "+primaryCode);
+
 //        if (isWordSeparator(primaryCode)) {
 //            // Handle separator
 //            if (mComposing.length() > 0) {
@@ -673,11 +699,11 @@ public class SoftKeyboard extends InputMethodService
 //        updateShiftKeyState(getCurrentInputEditorInfo());
     }
 
-    /**
-     * Update the list of available candidates from the current composing
-     * text.  This will need to be filled in by however you are determining
-     * candidates.
-     */
+//    /**
+//     * Update the list of available candidates from the current composing
+//     * text.  This will need to be filled in by however you are determining
+//     * candidates.
+//     */
 //    private void updateCandidates() {
 //        if (!mCompletionOn) {
 //            if (mComposing.length() > 0) {
@@ -723,21 +749,21 @@ public class SoftKeyboard extends InputMethodService
             return;
         }
         
-        Keyboard currentKeyboard = mInputView.getKeyboard();
+//        Keyboard currentKeyboard = mInputView.getKeyboard();
 //        if (mQwertyKeyboard == currentKeyboard) {
 //            // Alphabet keyboard
 //            checkToggleCapsLock();
 //            mInputView.setShifted(mCapsLock || !mInputView.isShifted());
 //        } else
-        if (currentKeyboard == mSymbolsKeyboard) {
-            mSymbolsKeyboard.setShifted(true);
-            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
-            mSymbolsShiftedKeyboard.setShifted(true);
-        } else if (currentKeyboard == mSymbolsShiftedKeyboard) {
-            mSymbolsShiftedKeyboard.setShifted(false);
-            mInputView.setKeyboard(mSymbolsKeyboard);
-            mSymbolsKeyboard.setShifted(false);
-        }
+//        if (currentKeyboard == mSymbolsKeyboard) {
+//            mSymbolsKeyboard.setShifted(true);
+//            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
+//            mSymbolsShiftedKeyboard.setShifted(true);
+//        } else if (currentKeyboard == mSymbolsShiftedKeyboard) {
+//            mSymbolsShiftedKeyboard.setShifted(false);
+//            mInputView.setKeyboard(mSymbolsKeyboard);
+//            mSymbolsKeyboard.setShifted(false);
+//        }
     }
     
     private void handleCharacter(int primaryCode, int[] keyCodes) {
@@ -755,6 +781,10 @@ public class SoftKeyboard extends InputMethodService
 //            getCurrentInputConnection().commitText(
 //                    String.valueOf((char) primaryCode), 1);
 //        }
+        if (primaryCode == 10 && mActionType != -1){
+            getCurrentInputConnection().performEditorAction(mActionType);
+            return;
+        }
         getCurrentInputConnection().commitText(
                 String.valueOf((char) primaryCode), 1);
     }
@@ -826,7 +856,7 @@ public class SoftKeyboard extends InputMethodService
         Log.i(TAG, "translateKeyToIndex: "+keyCode);
         int index = -1; //used for bcksp alt etc, keys I dont wanna remap
         switch (keyCode){
-            case KeyEvent.KEYCODE_Q://row 3
+            case KeyEvent.KEYCODE_Q://row 1
                 index = 0;
                 break;
             case KeyEvent.KEYCODE_W:
@@ -910,9 +940,9 @@ public class SoftKeyboard extends InputMethodService
             case KeyEvent.KEYCODE_M:
                 index = 27;
                 break;
-//            case KeyEvent.KEYCODE_ENTER:
-//                index = 27;
-//                break;
+            case KeyEvent.KEYCODE_ENTER:
+                index = 28;
+                break;
         }
         return index;
     }
