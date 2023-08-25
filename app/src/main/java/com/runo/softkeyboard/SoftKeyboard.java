@@ -415,9 +415,10 @@ public class SoftKeyboard extends InputMethodService
                     if (code == 10 && mActionType != -1){
                         getCurrentInputConnection().performEditorAction(mActionType);
                         return true;
+                    } else if (code == -1) {
+                        return true;
                     }
-                    getCurrentInputConnection().commitText(
-                            String.valueOf((char) code), 1);
+                    getCurrentInputConnection().commitText(String.valueOf((char) code), 1);
                     return true;
                 }
             }catch (Exception e){
@@ -526,9 +527,10 @@ public class SoftKeyboard extends InputMethodService
             return super.onKeyUp(keyCode, event);
         }
 //        else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
-//            int pressedIndex = translateKeyToIndex(keyCode);
-//            List<Keyboard.Key> list = current.getKeys();
-//            int c = list.get(pressedIndex).codes[0];
+//            if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
+//                mInputView.setKeyboard(mCurKeyboard);
+//                return true;
+//            }
 //        }
 
         if (event.isAltPressed()) { //bindings for alt key
@@ -550,6 +552,13 @@ public class SoftKeyboard extends InputMethodService
                     }
                 }
                 return true;
+            }
+        }else{
+            if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
+                if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
+                    mInputView.setKeyboard(mCurKeyboard);
+                    return true;
+                }
             }
         }
 //        else if (event.isShiftPressed()) {
@@ -632,7 +641,8 @@ public class SoftKeyboard extends InputMethodService
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
         Log.d(TAG, "onKey: "+primaryCode);
-
+        if(primaryCode == -1) //unmapped TODO
+            return;
 //        if (isWordSeparator(primaryCode)) {
 //            // Handle separator
 //            if (mComposing.length() > 0) {
@@ -644,9 +654,10 @@ public class SoftKeyboard extends InputMethodService
 //        if (primaryCode == Keyboard.KEYCODE_DELETE) {
 ////            handleBackspace();
 //        } else
-        if (primaryCode == Keyboard.KEYCODE_SHIFT) {
-            handleShift();
-        } else if (primaryCode == Keyboard.KEYCODE_CANCEL) {
+//        if (primaryCode == Keyboard.KEYCODE_SHIFT) {
+//            handleShift();
+//        } else
+        if (primaryCode == Keyboard.KEYCODE_CANCEL) {
             handleClose();
             return;
         }
@@ -675,12 +686,12 @@ public class SoftKeyboard extends InputMethodService
             //right
             sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
         }
-        else if (primaryCode == 4096){
-            Log.d("keeyb", "onKey: ");
-//            Keyboard current = mInputView.getKeyboard();
-//            List<Keyboard.Key> mods = current.getModifierKeys();
-            Log.d("keeyb", "onKey: ");
-        }
+//        else if (primaryCode == 4096){
+//            Log.d("keeyb", "onKey: ");
+////            Keyboard current = mInputView.getKeyboard();
+////            List<Keyboard.Key> mods = current.getModifierKeys();
+//            Log.d("keeyb", "onKey: ");
+//        }
         else {
             handleCharacter(primaryCode, keyCodes);
         }
