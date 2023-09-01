@@ -26,16 +26,19 @@ import android.view.inputmethod.InputMethodSubtype;
 public class LatinKeyboardView extends KeyboardView {
 
     static final int KEYCODE_OPTIONS = -100;
+    static final int KEYCODE_LEFT = -101;
+    static final int KEYCODE_RIGHT = -102;
+    static final int NOT_A_KEY = -1;
 
     public LatinKeyboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setOptions();
     }
 
     public LatinKeyboardView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        setOptions();
     }
-
-
 
     @Override
     protected boolean onLongPress(Key key) {
@@ -53,5 +56,8 @@ public class LatinKeyboardView extends KeyboardView {
         final LatinKeyboard keyboard = (LatinKeyboard)getKeyboard();
         keyboard.setSpaceIcon(getResources().getDrawable(subtype.getIconResId()));
         invalidateAllKeys();
+    }
+    private void setOptions(){
+        this.setPreviewEnabled(false);
     }
 }

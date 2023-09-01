@@ -64,11 +64,11 @@
     </Row>
 
     <Row android:rowEdgeFlags="bottom">
-        <Key android:codes="1" android:keyLabel="L" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+        <Key android:codes="-101" android:keyIcon="@drawable/left_arrow" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
         <Key android:codes="9" android:keyLabel="TAB" android:keyWidth="15%p"/>
         <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
         <Key android:codes="9" android:keyLabel="CTRL" android:keyWidth="15%p"/>
-        <Key android:codes="2" android:keyLabel="R" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+        <Key android:codes="-102" android:keyIcon="@drawable/right_arrow" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
     </Row>
 
 <!--    <Row android:rowEdgeFlags="bottom">-->
