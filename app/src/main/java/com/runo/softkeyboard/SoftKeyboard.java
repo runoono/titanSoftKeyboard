@@ -33,8 +33,6 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
-import android.inputmethodservice.Keyboard.Key;
-import java.util.List;
 
 /**
  * Example of writing an input method for a soft keyboard.  This code is
@@ -43,236 +41,24 @@ import java.util.List;
  * a basic example for how you would get started writing an input method, to
  * be fleshed out as appropriate.
  */
-public class SoftKeyboard extends InputMethodService 
-        implements KeyboardView.OnKeyboardActionListener {
+public class SoftKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
 
     private static final String TAG = "titan keyboard";
     private InputMethodManager mInputMethodManager;
-
     private LatinKeyboardView mInputView;
-
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
     private LatinKeyboard mQwertyKeyboard;
     private LatinKeyboard mNumericKeyboard;
-
     private LatinKeyboard mCurKeyboard;
-
     private long lastShiftTime = 0L;
     private long lastAltTime = 0L;
     private boolean altLock = false;
     private boolean shiftLock = false;
     private boolean altShortcut = false;
     private boolean shiftShortcut = false;
+    private final Vibrator vibrationService = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
-    /**
-     * Main initialization of the input method component.  Be sure to call
-     * to super class.
-     */
-    @Override public void onCreate() {
-        Log.d(TAG, "onCreate: ");
-        super.onCreate();
-        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
-    }
-    
-    /**
-     * This is the point where you can do all of your UI initialization.  It
-     * is called after creation and any configuration change.
-     */
-    @Override
-    public void onInitializeInterface() {
-        Log.d(TAG, "onInitializeInterface: ");
-//        if (mQwertyKeyboard != null) {
-//            // Configuration changes can happen after the keyboard gets recreated,
-//            // so we need to be able to re-build the keyboards if the available
-//            // space has changed.
-//            int displayWidth = getMaxWidth();
-//            if (displayWidth == mLastDisplayWidth) return;
-//            mLastDisplayWidth = displayWidth;
-//        }
-
-        mQwertyKeyboard = new LatinKeyboard(this, R.xml.qwerty);
-        mSymbolsKeyboard = new LatinKeyboard(this, R.xml.symbols);
-        mSymbolsShiftedKeyboard = new LatinKeyboard(this, R.xml.symbols_shift);
-        mNumericKeyboard = new LatinKeyboard(this, R.xml.numpad);
-    }
-    
-    /**
-     * Called by the framework when your view for creating input needs to
-     * be generated.  This will be called the first time your input method
-     * is displayed, and every time it needs to be re-created such as due to
-     * a configuration change.
-     */
-    @Override
-    public View onCreateInputView() {
-        Log.d(TAG, "onCreateInputView: ");
-        mInputView = (LatinKeyboardView) getLayoutInflater().inflate(
-                R.layout.input, null);
-        mInputView.setOnKeyboardActionListener(this);
-        mInputView.setKeyboard(mQwertyKeyboard);
-        return mInputView;
-    }
-
-    /**
-     * Called by the framework when your view for showing candidates needs to
-     * be generated, like {@link #onCreateInputView}.
-     */
-    @Override
-    public View onCreateCandidatesView() {
-        Log.d(TAG, "onCreateCandidatesView: ");
-//        mCandidateView = new CandidateView(this);
-//        mCandidateView.setService(this);
-        return null;
-    }
-
-    /**
-     * This is the main point where we do our initialization of the input method
-     * to begin operating on an application.  At this point we have been
-     * bound to the client, and are now receiving all of the detailed information
-     * about the target of our edits.
-     */
-    @Override
-    public void onStartInput(EditorInfo attribute, boolean restarting) {
-        Log.d(TAG, "onStartInput: ");
-        super.onStartInput(attribute, restarting);
-        
-        // Reset our state.  We want to do this even if restarting, because
-        // the underlying state of the text editor could have changed in any way.
-//        mComposing.setLength(0);
-//        updateCandidates();
-
-//        if (!restarting) {
-            // Clear shift states.
-//            mMetaState = 0;
-//        }
-        
-//        mPredictionOn = false;
-//        mCompletionOn = false;
-//        mCompletions = null;
-        
-        // We are now going to initialize our state based on the type of
-        // text being edited.
-        switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
-            case InputType.TYPE_CLASS_NUMBER:
-            case InputType.TYPE_CLASS_DATETIME:
-            case InputType.TYPE_CLASS_PHONE:
-                mCurKeyboard = mNumericKeyboard;
-//                mCurKeyboard = mSymbolsKeyboard;
-                break;
-
-            case InputType.TYPE_CLASS_TEXT:
-                // This is general text editing.  We will default to the
-                // normal alphabetic keyboard, and assume that we should
-                // be doing predictive text (showing candidates as the
-                // user types).
-                mCurKeyboard = mQwertyKeyboard;
-                
-                // We now look for a few special variations of text that will
-                // modify our behavior.
-//                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
-//                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-//                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
-                    // Do not display predictions / what the user is typing
-                    // when they are entering a password.
-//                    mPredictionOn = false;
-//                }
-                
-//                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-//                        || variation == InputType.TYPE_TEXT_VARIATION_URI
-//                        || variation == InputType.TYPE_TEXT_VARIATION_FILTER) {
-                    // Our predictions are not useful for e-mail addresses
-                    // or URIs.
-//                    mPredictionOn = false;
-//                }
-                
-//                if ((attribute.inputType & InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
-                    // If this is an auto-complete text view, then our predictions
-                    // will not be shown and instead we will allow the editor
-                    // to supply their own.  We only show the editor's
-                    // candidates when in fullscreen mode, otherwise relying
-                    // own it displaying its own UI.
-//                    mPredictionOn = false;
-//                    mCompletionOn = isFullscreenMode();
-//                }
-                
-                // We also want to look at the current state of the editor
-                // to decide whether our alphabetic keyboard should start out
-                // shifted.
-//                updateShiftKeyState(attribute);
-                break;
-                
-            default:
-                // For all unknown input types, default to the alphabetic
-                // keyboard with no special features.
-                mCurKeyboard = mQwertyKeyboard;
-//                updateShiftKeyState(attribute);
-        }
-        
-        // Update the label on the enter key, depending on what the application
-        // says it will do.
-//        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
-    }
-
-    /**
-     * This is called when the user is done editing a field.  We can use
-     * this to reset our state.
-     */
-    @Override
-    public void onFinishInput() {
-        Log.d(TAG, "onFinishInput: ");
-        super.onFinishInput();
-        altLock = false;
-        shiftLock = false;
-        altShortcut=false;
-//        mActionType = -1;
-//        keyboardViewRequested = false;
-        // Clear current composing text and candidates.
-//        mComposing.setLength(0);
-//        updateCandidates();
-        
-        // We only hide the candidates window when finishing input on
-        // a particular editor, to avoid popping the underlying application
-        // up and down if the user is entering text into the bottom of
-        // its window.
-//        setCandidatesViewShown(false);
-        
-//        mCurKeyboard = mQwertyKeyboard;
-        if (mInputView != null) {
-            mInputView.closing();
-        }
-    }
-    
-    @Override
-    public void onStartInputView(EditorInfo attribute, boolean restarting) {
-        Log.d(TAG, "onStartInputView: ");
-//        keyboardViewRequested = true;
-        super.onStartInputView(attribute, restarting);
-        // Apply the selected keyboard to the input view.
-        mInputView.setKeyboard(mCurKeyboard);
-//        mInputView.closing();
-        final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
-        mInputView.setSubtypeOnSpaceKey(subtype);
-    }
-
-    @Override
-    public void onCurrentInputMethodSubtypeChanged(InputMethodSubtype subtype) {
-        Log.d(TAG, "onCurrentInputMethodSubtypeChanged: ");
-        mInputView.setSubtypeOnSpaceKey(subtype);
-    }
-
-    /**
-     * Deal with the editor reporting movement of its cursor.
-     */
-    @Override
-    public void onUpdateSelection(int oldSelStart, int oldSelEnd,
-            int newSelStart, int newSelEnd,
-            int candidatesStart, int candidatesEnd) {
-        Log.d(TAG, "onUpdateSelection: ");
-        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
-                candidatesStart, candidatesEnd);
-    }
-
-    
     /**
      * Use this to monitor key events being delivered to the application.
      * We get first crack at them, and can either resume them or let them
@@ -335,7 +121,6 @@ public class SoftKeyboard extends InputMethodService
             switch (keyCode){
                 case KeyEvent.KEYCODE_ENTER:
                     sendDefaultEditorAction(true);
-//                    getCurrentInputConnection().performEditorAction(mActionType);
                     return true;
                 case KeyEvent.KEYCODE_SPACE:
                     handleCharacter(' ', null);
@@ -351,7 +136,6 @@ public class SoftKeyboard extends InputMethodService
         }
 
         return super.onKeyDown(keyCode, event);
-//        return false;
     }
 
     /**
@@ -379,17 +163,15 @@ public class SoftKeyboard extends InputMethodService
                             Log.d(TAG, "onKeyUp: alt lock off");
                             altLock = false;
                             getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
-                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                            vibrate(1);
                             return true;
                         }
                     }else {//check for double tap
                         if((System.currentTimeMillis() - lastAltTime) < 800L){
                             Log.d(TAG, "onKeyUp: alt lock on");
                             altLock = true;
-                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                            v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
-//                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT));
+                            vibrate(2);
+
                             return true;
                         }else{
                             lastAltTime = System.currentTimeMillis();
@@ -410,16 +192,13 @@ public class SoftKeyboard extends InputMethodService
                             Log.d(TAG, "onKeyUp: shift lock off");
                             shiftLock = false;
                             getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
-                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                            vibrate(1);
                             return true;
                         }
                     }else {//check for double tap
                         if((System.currentTimeMillis() - lastShiftTime) < 800L){
                             Log.d(TAG, "onKeyUp: shift lock on");
-                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                            v.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
-                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
+                            vibrate(2);
                             shiftLock = true;
                             return true;
                         }else{
@@ -549,17 +328,181 @@ public class SoftKeyboard extends InputMethodService
         }
     }
 
+
+    /**
+     * Main initialization of the input method component.  Be sure to call
+     * to super class.
+     */
+    @Override public void onCreate() {
+        Log.d(TAG, "onCreate: ");
+        super.onCreate();
+        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+    }
+    
+    /**
+     * This is the point where you can do all of your UI initialization.  It
+     * is called after creation and any configuration change.
+     */
+    @Override
+    public void onInitializeInterface() {
+        Log.d(TAG, "onInitializeInterface: ");
+//        if (mQwertyKeyboard != null) {
+//            // Configuration changes can happen after the keyboard gets recreated,
+//            // so we need to be able to re-build the keyboards if the available
+//            // space has changed.
+//            int displayWidth = getMaxWidth();
+//            if (displayWidth == mLastDisplayWidth) return;
+//            mLastDisplayWidth = displayWidth;
+//        }
+
+        mQwertyKeyboard = new LatinKeyboard(this, R.xml.qwerty);
+        mSymbolsKeyboard = new LatinKeyboard(this, R.xml.symbols);
+        mSymbolsShiftedKeyboard = new LatinKeyboard(this, R.xml.symbols_shift);
+        mNumericKeyboard = new LatinKeyboard(this, R.xml.numpad);
+    }
+    
+    /**
+     * Called by the framework when your view for creating input needs to
+     * be generated.  This will be called the first time your input method
+     * is displayed, and every time it needs to be re-created such as due to
+     * a configuration change.
+     */
+    @Override
+    public View onCreateInputView() {
+        Log.d(TAG, "onCreateInputView: ");
+        mInputView = (LatinKeyboardView) getLayoutInflater().inflate(R.layout.input, null);
+        mInputView.setOnKeyboardActionListener(this);
+        mInputView.setKeyboard(mQwertyKeyboard);
+        return mInputView;
+    }
+
+    /**
+     * Called by the framework when your view for showing candidates needs to
+     * be generated, like {@link #onCreateInputView}.
+     */
+    @Override
+    public View onCreateCandidatesView() {
+        Log.d(TAG, "onCreateCandidatesView: ");
+        return null;
+    }
+
+    /**
+     * This is the main point where we do our initialization of the input method
+     * to begin operating on an application.  At this point we have been
+     * bound to the client, and are now receiving all of the detailed information
+     * about the target of our edits.
+     */
+    @Override
+    public void onStartInput(EditorInfo attribute, boolean restarting) {
+        Log.d(TAG, "onStartInput: ");
+        super.onStartInput(attribute, restarting);
+
+        switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
+            case InputType.TYPE_CLASS_NUMBER:
+            case InputType.TYPE_CLASS_DATETIME:
+            case InputType.TYPE_CLASS_PHONE:
+                mCurKeyboard = mNumericKeyboard;
+//                mCurKeyboard = mSymbolsKeyboard;
+                break;
+
+            case InputType.TYPE_CLASS_TEXT:
+                // This is general text editing.  We will default to the
+                // normal alphabetic keyboard, and assume that we should
+                // be doing predictive text (showing candidates as the
+                // user types).
+                mCurKeyboard = mQwertyKeyboard;
+                
+                // We now look for a few special variations of text that will
+                // modify our behavior.
+//                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
+//                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+//                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
+                    // Do not display predictions / what the user is typing
+                    // when they are entering a password.
+//                    mPredictionOn = false;
+//                }
+                
+//                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+//                        || variation == InputType.TYPE_TEXT_VARIATION_URI
+//                        || variation == InputType.TYPE_TEXT_VARIATION_FILTER) {
+                    // Our predictions are not useful for e-mail addresses
+                    // or URIs.
+//                    mPredictionOn = false;
+//                }
+                
+//                if ((attribute.inputType & InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
+                    // If this is an auto-complete text view, then our predictions
+                    // will not be shown and instead we will allow the editor
+                    // to supply their own.  We only show the editor's
+                    // candidates when in fullscreen mode, otherwise relying
+                    // own it displaying its own UI.
+//                    mPredictionOn = false;
+//                    mCompletionOn = isFullscreenMode();
+//                }
+                
+                // We also want to look at the current state of the editor
+                // to decide whether our alphabetic keyboard should start out
+                // shifted.
+//                updateShiftKeyState(attribute);
+                break;
+                
+            default:
+                // For all unknown input types, default to the alphabetic
+                // keyboard with no special features.
+                mCurKeyboard = mQwertyKeyboard;
+//                updateShiftKeyState(attribute);
+        }
+        
+        // Update the label on the enter key, depending on what the application
+        // says it will do.
+//        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
+    }
+
+    /**
+     * This is called when the user is done editing a field.  We can use
+     * this to reset our state.
+     */
+    @Override
+    public void onFinishInput() {
+        Log.d(TAG, "onFinishInput: ");
+        super.onFinishInput();
+        altLock = false;
+        shiftLock = false;
+        altShortcut=false;
+        if (mInputView != null) {
+            mInputView.closing();
+        }
+    }
+    
+    @Override
+    public void onStartInputView(EditorInfo attribute, boolean restarting) {
+        Log.d(TAG, "onStartInputView: ");
+//        keyboardViewRequested = true;
+        super.onStartInputView(attribute, restarting);
+        // Apply the selected keyboard to the input view.
+        mInputView.setKeyboard(mCurKeyboard);
+//        mInputView.closing();
+        final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
+        mInputView.setSubtypeOnSpaceKey(subtype);
+    }
+
+    @Override
+    public void onCurrentInputMethodSubtypeChanged(InputMethodSubtype subtype) {
+        Log.d(TAG, "onCurrentInputMethodSubtypeChanged: ");
+        mInputView.setSubtypeOnSpaceKey(subtype);
+    }
+
+    /**
+     * Deal with the editor reporting movement of its cursor.
+     */
+    @Override
+    public void onUpdateSelection(int oldSelStart, int oldSelEnd, int newSelStart, int newSelEnd, int candidatesStart, int candidatesEnd) {
+        Log.d(TAG, "onUpdateSelection: ");
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd);
+    }
+
     @Override
     public void onText(CharSequence text) {
-//        InputConnection ic = getCurrentInputConnection();
-//        if (ic == null) return;
-//        ic.beginBatchEdit();
-//        if (mComposing.length() > 0) {
-//            commitTyped(ic);
-//        }
-//        ic.commitText(text, 0);
-//        ic.endBatchEdit();
-//        updateShiftKeyState(getCurrentInputEditorInfo());
     }
 
     private void handleCharacter(int primaryCode, int[] keyCodes) {
@@ -583,7 +526,6 @@ public class SoftKeyboard extends InputMethodService
 //        commitTyped(getCurrentInputConnection());
         requestHideSelf(0);
         mInputView.closing();
-
     }
     
     public void swipeRight() {
@@ -608,11 +550,10 @@ public class SoftKeyboard extends InputMethodService
 
     public void onRelease(int primaryCode) {
         Log.d(TAG, "onRelease: ");
-        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        v.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
+        vibrate(0);
     }
 
-    public int translateKeyToIndex(int keyCode){
+    public static int translateKeyToIndex(int keyCode){
         Log.i(TAG, "translateKeyToIndex: "+keyCode);
         int index = NOT_A_KEY; //used for bcksp alt etc, keys I dont wanna remap
         switch (keyCode){
@@ -705,6 +646,21 @@ public class SoftKeyboard extends InputMethodService
                 break;
         }
         return index;
+    }
+
+    private void vibrate(int type){
+        switch (type){
+            case 0://key feedback
+                vibrationService.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
+                break;
+            case 1://notification single
+                vibrationService.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
+                break;
+            case 2://notification double
+                vibrationService.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
+                break;
+
+        }
     }
 
 }
