@@ -16,6 +16,7 @@
 
 package com.runo.softkeyboard;
 
+import static com.runo.softkeyboard.LatinKeyboardView.KEYCODE_CTRL;
 import static com.runo.softkeyboard.LatinKeyboardView.NOT_A_KEY;
 
 import android.content.Context;
@@ -32,8 +33,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
-
-import java.security.Key;
+import android.inputmethodservice.Keyboard.Key;
 import java.util.List;
 
 /**
@@ -57,8 +57,6 @@ public class SoftKeyboard extends InputMethodService
     private LatinKeyboard mNumericKeyboard;
 
     private LatinKeyboard mCurKeyboard;
-
-//    private String mWordSeparators;
 
     private long lastShiftTime = 0L;
     private long lastAltTime = 0L;
@@ -212,7 +210,7 @@ public class SoftKeyboard extends InputMethodService
         
         // Update the label on the enter key, depending on what the application
         // says it will do.
-        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
+//        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
     }
 
     /**
@@ -285,6 +283,7 @@ public class SoftKeyboard extends InputMethodService
         //note: this method is a bit spammy due to key repetition
         Log.d(TAG, "onKeyDown: "+keyCode);
 
+        //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
         if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
             keyDownUp(KeyEvent.KEYCODE_DEL);
             return true;
@@ -300,7 +299,7 @@ public class SoftKeyboard extends InputMethodService
 //            }
 //        }
 
-        Keyboard current = mInputView.getKeyboard();
+        LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
         if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
             if (keyCode == KeyEvent.KEYCODE_BACK){
                 mInputView.setKeyboard(mCurKeyboard);
@@ -319,13 +318,13 @@ public class SoftKeyboard extends InputMethodService
         }
 
         if(altLock){ //termux, kuroba, etc fix
-            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), 34, event.getDeviceId(), event.getScanCode());
+            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_ON, event.getDeviceId(), event.getScanCode());
             getCurrentInputConnection().sendKeyEvent(ke);
             ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
             getCurrentInputConnection().sendKeyEvent(ke);
             return true;
         } else if (shiftLock) {
-            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), 65, event.getDeviceId(), event.getScanCode());
+            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_SHIFT_ON, event.getDeviceId(), event.getScanCode());
             getCurrentInputConnection().sendKeyEvent(ke);
             ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
             getCurrentInputConnection().sendKeyEvent(ke);
@@ -339,9 +338,16 @@ public class SoftKeyboard extends InputMethodService
 //                    getCurrentInputConnection().performEditorAction(mActionType);
                     return true;
                 case KeyEvent.KEYCODE_SPACE:
-                    handleCharacter(KeyEvent.KEYCODE_SPACE, null);
+                    handleCharacter(' ', null);
                     return true;
             }
+        }
+        if(current.isCtrlOn()){
+            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
+            getCurrentInputConnection().sendKeyEvent(ke);
+            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+            getCurrentInputConnection().sendKeyEvent(ke);
+            return true;
         }
 
         return super.onKeyDown(keyCode, event);
@@ -493,7 +499,7 @@ public class SoftKeyboard extends InputMethodService
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
         Log.d(TAG, "onKey: "+primaryCode);
-        if(primaryCode == NOT_A_KEY)
+        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
             return;
 //        if (isWordSeparator(primaryCode)) {
 //            // Handle separator
