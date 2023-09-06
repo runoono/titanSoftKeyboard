@@ -59,8 +59,17 @@ public class LatinKeyboard extends Keyboard {
         return mCtrlKey;
     }
 
+    public void setCtrlState(Boolean state){
+        if(mCtrlKey != null){
+            mCtrlKey.on = state;
+        }
+    }
+
     public boolean isCtrlOn(){
-        return mCtrlKey.on;
+        if(mCtrlKey == null)
+            return false;
+        else
+            return mCtrlKey.on;
     }
 
     /**

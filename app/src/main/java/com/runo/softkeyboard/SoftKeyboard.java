@@ -34,6 +34,9 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * Example of writing an input method for a soft keyboard.  This code is
  * focused on simplicity over completeness, so it should in no way be considered
@@ -57,7 +60,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     private boolean shiftLock = false;
     private boolean altShortcut = false;
     private boolean shiftShortcut = false;
-    private final Vibrator vibrationService = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+    private boolean isCtrlPressed = false;
+    private Vibrator vibrationService;
+//    private final ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor();
 
     /**
      * Use this to monitor key events being delivered to the application.
@@ -67,23 +72,18 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //note: this method is a bit spammy due to key repetition
-        Log.d(TAG, "onKeyDown: "+keyCode);
+        Log.i(TAG, "onKeyDown: "+keyCode);
+
+        if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
+            isCtrlPressed =true;
+            mQwertyKeyboard.setCtrlState(true);
+        }
 
         //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
         if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
-            keyDownUp(KeyEvent.KEYCODE_DEL);
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL);
             return true;
         }
-
-//        if (event.isShiftPressed()) {
-//            if(keyCode != KeyEvent.KEYCODE_SHIFT_LEFT){
-//                shiftShortcut = true;
-//                if(keyCode == KeyEvent.KEYCODE_DEL){
-//                    keyDownUp(KeyEvent.KEYCODE_FORWARD_DEL); // del
-//                }
-//                return false;
-//            }
-//        }
 
         LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
         if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
@@ -103,7 +103,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
             }
         }
 
-        if(altLock){ //termux, kuroba, etc fix
+
+        if(altLock && keyCode != KeyEvent.KEYCODE_SPACE){
             KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_ON, event.getDeviceId(), event.getScanCode());
             getCurrentInputConnection().sendKeyEvent(ke);
             ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
@@ -117,6 +118,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
             return true;
         }
 
+
         if(event.isAltPressed()){
             switch (keyCode){
                 case KeyEvent.KEYCODE_ENTER:
@@ -127,7 +129,19 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     return true;
             }
         }
-        if(current.isCtrlOn()){
+
+        if(event.isShiftPressed()){
+            switch (keyCode){
+                case KeyEvent.KEYCODE_ENTER:
+                    handleCharacter('\n', null);
+                    return true;
+                case KeyEvent.KEYCODE_DEL:
+                    sendDownUpKeyEvents(KeyEvent.KEYCODE_FORWARD_DEL);
+                    return true;
+            }
+        }
+
+        if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
             KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
             getCurrentInputConnection().sendKeyEvent(ke);
             ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
@@ -148,12 +162,35 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         // If we want to do transformations on text being entered with a hard
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
+        Log.i(TAG, "onKeyUp: "+keyCode);
 
-        Log.d(TAG, "onKeyUp: "+keyCode);
+        if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
+            isCtrlPressed = false;
+            mQwertyKeyboard.setCtrlState(false);
+        }
+
+        if (event.isAltPressed()) { //bindings for alt key
+            if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
+                altShortcut = true;
+                if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
+                    cycleThroughKeyboardsLayers();
+                    InputConnection ic = getCurrentInputConnection();
+                    if (ic != null) {
+                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
+                    }
+                }
+                return true;
+            }
+        }
+        if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
+            cycleThroughKeyboardsLayers();
+            return true;
+        }
+
         Keyboard current = mInputView.getKeyboard();
         if(current == mQwertyKeyboard){
             if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
-                getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+                getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                 shiftLock = false;
                 if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
                     altShortcut = false;
@@ -162,7 +199,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                         if((System.currentTimeMillis() - lastAltTime) > 300L){
                             Log.d(TAG, "onKeyUp: alt lock off");
                             altLock = false;
-                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
+                            getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_ALT_ON);
                             vibrate(1);
                             return true;
                         }
@@ -182,7 +219,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
 
             if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-                getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT));
+                getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_ALT_ON);
                 altLock = false;
                 if(shiftShortcut){
                     shiftShortcut = false;
@@ -191,7 +228,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                         if((System.currentTimeMillis() - lastShiftTime) > 300L){
                             Log.d(TAG, "onKeyUp: shift lock off");
                             shiftLock = false;
-                            getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+                            getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                             vibrate(1);
                             return true;
                         }
@@ -210,68 +247,17 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         } else if (current == mNumericKeyboard) {
             return super.onKeyUp(keyCode, event);
         }
-//        else if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
-//            if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-//                mInputView.setKeyboard(mCurKeyboard);
-//                return true;
-//            }
-//        }
-
-        if (event.isAltPressed()) { //bindings for alt key
-            if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
-                altShortcut = true;
-                if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
-                    //cycle through sym layers
-                    InputConnection ic = getCurrentInputConnection();
-                    if (ic != null) {
-                        if (current == mCurKeyboard) {
-                            mInputView.setKeyboard(mSymbolsKeyboard);
-                        } else if (current == mSymbolsKeyboard) {
-                            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
-                        } else if (current == mSymbolsShiftedKeyboard) {
-                            mInputView.setKeyboard(mCurKeyboard);
-                        }
-                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
-
-                    }
-                }
-                return true;
-            }
-        }else{
-            if (current == mSymbolsKeyboard || mCurKeyboard == mSymbolsShiftedKeyboard) {
-                if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-                    mInputView.setKeyboard(mCurKeyboard);
-                    return true;
-                }
-            }
-        }
-//        else if (event.isShiftPressed()) {
-//            if(keyCode != KeyEvent.KEYCODE_SHIFT_LEFT){
-//                shiftShortcut = true;
-////                if(keyCode == KeyEvent.KEYCODE_DEL){
-////                    keyDownUp(KeyEvent.KEYCODE_FORWARD_DEL); // del
-////                }
-//                return false;
-//            }
-//        }
-//        if (keyCode == KeyEvent.KEYCODE_BACK){
-//            handleClose();
-//        }
-
-//        if(keyboardViewRequested)
-//            if(!isInputViewShown())
-//                requestShowSelf(0);
 
         return super.onKeyUp(keyCode, event);
     }
 
-    /**
-     * Helper to send a key down / key up pair to the current editor.
-     */
-    private void keyDownUp(int keyEventCode) {
-        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode));
-        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyEventCode));
-    }
+//    /**
+//     * Helper to send a key down / key up pair to the current editor.
+//     */
+//    private void keyDownUp(int keyEventCode) {
+//        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode));
+//        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyEventCode));
+//    }
 
 
     // Implementation of KeyboardViewListener
@@ -280,47 +266,16 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         Log.d(TAG, "onKey: "+primaryCode);
         if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
             return;
-//        if (isWordSeparator(primaryCode)) {
-//            // Handle separator
-//            if (mComposing.length() > 0) {
-//                commitTyped(getCurrentInputConnection());
-//            }
-//            sendKey(primaryCode);
-//            updateShiftKeyState(getCurrentInputEditorInfo());
-//        } else
-//        if (primaryCode == Keyboard.KEYCODE_DELETE) {
-////            handleBackspace();
-//        } else
-//        if (primaryCode == Keyboard.KEYCODE_SHIFT) {
-//            handleShift();
-//        } else
-        if (primaryCode == Keyboard.KEYCODE_CANCEL) {
-            handleClose();
-            return;
-        }
-//        else if (primaryCode == LatinKeyboardView.KEYCODE_OPTIONS) {
-//            // Show a menu or somethin'
+//        if (primaryCode == Keyboard.KEYCODE_CANCEL) {
+//            handleClose();
+//            return;
 //        }
         else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
                 && mInputView != null) {
-            Keyboard current = mInputView.getKeyboard();
-            if(current == mSymbolsKeyboard ){
-                current = mSymbolsShiftedKeyboard;
-            }
-            else if (current == mSymbolsShiftedKeyboard) {
-                current = mQwertyKeyboard;
-            } else {
-                current = mSymbolsKeyboard;
-            }
-            mInputView.setKeyboard(current);
-            if (current == mSymbolsKeyboard) {
-                current.setShifted(false);
-            }
+            cycleThroughKeyboardsLayers();
         } else if(primaryCode == LatinKeyboardView.KEYCODE_LEFT){
-            //left
             sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
         } else if(primaryCode == LatinKeyboardView.KEYCODE_RIGHT){
-            //right
             sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
         }
         else {
@@ -337,6 +292,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         Log.d(TAG, "onCreate: ");
         super.onCreate();
         mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+        vibrationService = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
     
     /**
@@ -469,6 +425,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         altLock = false;
         shiftLock = false;
         altShortcut=false;
+        mQwertyKeyboard.setCtrlState(false);
         if (mInputView != null) {
             mInputView.closing();
         }
@@ -482,8 +439,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         // Apply the selected keyboard to the input view.
         mInputView.setKeyboard(mCurKeyboard);
 //        mInputView.closing();
-        final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
-        mInputView.setSubtypeOnSpaceKey(subtype);
+//        final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
+//        mInputView.setSubtypeOnSpaceKey(subtype);
     }
 
     @Override
@@ -522,11 +479,11 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         getCurrentInputConnection().commitText(String.valueOf((char) primaryCode), 1);
     }
 
-    private void handleClose() {
-//        commitTyped(getCurrentInputConnection());
-        requestHideSelf(0);
-        mInputView.closing();
-    }
+//    private void handleClose() {
+////        commitTyped(getCurrentInputConnection());
+//        requestHideSelf(0);
+//        mInputView.closing();
+//    }
     
     public void swipeRight() {
         Log.d(TAG, "swipeRight: ");
@@ -662,5 +619,14 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
         }
     }
-
+    private void cycleThroughKeyboardsLayers(){
+        Keyboard current = mInputView.getKeyboard();
+        if (current == mCurKeyboard) {
+            mInputView.setKeyboard(mSymbolsKeyboard);
+        } else if (current == mSymbolsKeyboard) {
+            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
+        } else if (current == mSymbolsShiftedKeyboard) {
+            mInputView.setKeyboard(mCurKeyboard);
+        }
+    }
 }

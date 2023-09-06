@@ -28,6 +28,8 @@ public class LatinKeyboardView extends KeyboardView {
     static final int KEYCODE_OPTIONS = -100;
     static final int KEYCODE_LEFT = -101;
     static final int KEYCODE_RIGHT = -102;
+    static final int KEYCODE_UP = -104;
+    static final int KEYCODE_DOWN = -105;
     static final int KEYCODE_CTRL = -103;
     static final int NOT_A_KEY = -1;
 

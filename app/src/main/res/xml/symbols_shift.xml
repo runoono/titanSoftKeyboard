@@ -60,12 +60,12 @@
         <Key android:codes="124" android:keyLabel="|"/>                             //7 b
         <Key android:codes="92" android:keyLabel="\\" />                            //8 n
         <Key android:codes="191" android:keyLabel="¿"/>                             //9 m
-        <Key android:codes="10" android:keyIcon="@drawable/sym_keyboard_return" android:keyEdgeFlags="right"/>//EMPTY enter
+        <Key android:codes="10" android:keyIcon="@drawable/enter_key" android:keyEdgeFlags="right"/>//EMPTY enter
     </Row>
 
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="-101" android:keyIcon="@drawable/left_arrow" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
-        <Key android:codes="9" android:keyLabel="TAB" android:keyWidth="15%p"/>
+        <Key android:codes="9" android:keyIcon="@drawable/tab_key" android:keyWidth="15%p"/>
         <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
         <Key android:codes="-103" android:keyLabel="CTRL" android:isModifier="true" android:isSticky="true" android:keyWidth="15%p"/>
         <Key android:codes="-102" android:keyIcon="@drawable/right_arrow" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>

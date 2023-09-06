@@ -27,7 +27,7 @@
 
     <Row android:rowEdgeFlags="bottom" >
         <Key android:codes="-101" android:keyIcon="@drawable/left_arrow" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
-        <Key android:codes="9" android:keyLabel="TAB" android:keyWidth="15%p"/>
+        <Key android:codes="9" android:keyIcon="@drawable/tab_key" android:keyWidth="15%p"/>
         <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
         <Key android:codes="-103" android:keyLabel="CTRL" android:isModifier="true" android:isSticky="true" android:keyWidth="15%p"/>
         <Key android:codes="-102" android:keyIcon="@drawable/right_arrow" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
