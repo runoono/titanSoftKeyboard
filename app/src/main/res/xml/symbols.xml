@@ -29,13 +29,13 @@
         <Key android:codes="59" android:keyLabel=";" android:keyEdgeFlags="left"/>  //: q
         <Key android:codes="92" android:keyLabel="\\"/>                              /// w
         <Key android:codes="-1" android:keyLabel=" "/>                              //_ e
-        <Key android:codes="-1" android:keyLabel=" "/>                              //- r
+        <Key android:codes="123" android:keyLabel="{"/>                              //- r
         <Key android:codes="91" android:keyLabel="["/>                              //( t
         <Key android:codes="93" android:keyLabel="]"/>                              //) y
-        <Key android:codes="-1" android:keyLabel=" "/>                              //1 u
+        <Key android:codes="125" android:keyLabel="}"/>                              //1 u
         <Key android:codes="-1" android:keyLabel=" "/>                              //2 i
-        <Key android:codes="-1" android:keyLabel=" "/>                              //3 o
-        <Key android:codes="-1" android:keyLabel=" " android:keyEdgeFlags="right"/> //0 p
+        <Key android:codes="94" android:keyLabel="^"/>                              //3 o
+        <Key android:codes="37" android:keyLabel="%" android:keyEdgeFlags="right"/> //0 p
     </Row>
 
     <Row>
@@ -43,11 +43,11 @@
         <Key android:codes="126" android:keyLabel="~"/>                             //' s
         <Key android:codes="-1" android:keyLabel=" "/>                              //" d
         <Key android:codes="61" android:keyLabel="="/>                              //+ f
-        <Key android:codes="123" android:keyLabel="{"/>                          //* g
-        <Key android:codes="125" android:keyLabel="}"/>                              //# h
-        <Key android:codes="-1" android:keyLabel=" "/>                              //4 j
-        <Key android:codes="-1" android:keyLabel=" "/>                              //5 k
-        <Key android:codes="94" android:keyLabel="^"/>                              //6 l
+        <Key android:codes="-1" android:keyLabel=" "/>                              //* g
+        <Key android:codes="-101" android:keyIcon="@drawable/left_arrow"/>          //# h
+        <Key android:codes="-105" android:keyIcon="@drawable/down_arrow"/>          //4 j
+        <Key android:codes="-104" android:keyIcon="@drawable/up_arrow"/>            //5 k
+        <Key android:codes="-102" android:keyIcon="@drawable/right_arrow"/>         //6 l
         <Key android:codes="-1" android:keyLabel=" " android:keyEdgeFlags="right"/> //EMPTY bckspc
     </Row>
 

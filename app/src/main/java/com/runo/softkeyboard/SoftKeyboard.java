@@ -91,15 +91,12 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 mInputView.setKeyboard(mCurKeyboard);
                 return true;
             }
-            try {
-                int pressedKey = translateKeyToIndex(keyCode);
-                if(pressedKey != NOT_A_KEY ){
-                    int code = current.getKeys().get(pressedKey).codes[0];
-                    handleCharacter(code, null);
-                    return true;
-                }
-            }catch (Exception e){
-                Log.e(TAG, "onKeyDown: ", e);
+            int pressedKey = translateKeyToIndex(keyCode);
+            if(pressedKey != NOT_A_KEY ){
+                Keyboard.Key key = current.getKeys().get(pressedKey);
+                int code = key.codes[0];
+                handleCharacter(code, null);
+                return true;
             }
         }
 
@@ -176,7 +173,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     cycleThroughKeyboardsLayers();
                     InputConnection ic = getCurrentInputConnection();
                     if (ic != null) {
-                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON); //clear alt so it does mess up the next char
+                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                        ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                     }
                 }
                 return true;
@@ -251,36 +249,22 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         return super.onKeyUp(keyCode, event);
     }
 
-//    /**
-//     * Helper to send a key down / key up pair to the current editor.
-//     */
-//    private void keyDownUp(int keyEventCode) {
-//        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode));
-//        getCurrentInputConnection().sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyEventCode));
-//    }
-
 
     // Implementation of KeyboardViewListener
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
         Log.d(TAG, "onKey: "+primaryCode);
-        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
-            return;
+        handleCharacter(primaryCode, keyCodes);
+//        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
+//            return;
 //        if (primaryCode == Keyboard.KEYCODE_CANCEL) {
 //            handleClose();
 //            return;
 //        }
-        else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
-                && mInputView != null) {
-            cycleThroughKeyboardsLayers();
-        } else if(primaryCode == LatinKeyboardView.KEYCODE_LEFT){
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
-        } else if(primaryCode == LatinKeyboardView.KEYCODE_RIGHT){
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
-        }
-        else {
-            handleCharacter(primaryCode, keyCodes);
-        }
+//
+//        else {
+//
+//        }
     }
 
 
@@ -461,20 +445,54 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     }
 
     private void handleCharacter(int primaryCode, int[] keyCodes) {
+        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
+            return;
+
         if (isInputViewShown()) {
             if (mInputView.isShifted()) {
                 primaryCode = Character.toUpperCase(primaryCode);
             }
         }
 
-        if (primaryCode == 10){
-            sendDefaultEditorAction(true);
-            return;
+//        else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
+//                && mInputView != null) {
+//            cycleThroughKeyboardsLayers();
+//        } else if(primaryCode == LatinKeyboardView.KEYCODE_LEFT){
+//            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
+//        } else if(primaryCode == LatinKeyboardView.KEYCODE_RIGHT){
+//            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
+//        }
+
+        switch (primaryCode){
+            case 10://unicode enter
+                sendDefaultEditorAction(true);
+                break;
+            case Keyboard.KEYCODE_MODE_CHANGE:
+                cycleThroughKeyboardsLayers();
+                break;
+            case LatinKeyboardView.KEYCODE_LEFT:
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
+                break;
+            case LatinKeyboardView.KEYCODE_RIGHT:
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
+                break;
+            case LatinKeyboardView.KEYCODE_UP:
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_UP);
+                break;
+            case LatinKeyboardView.KEYCODE_DOWN:
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_DOWN);
+                break;
+            default:
+                getCurrentInputConnection().commitText(String.valueOf((char) primaryCode), 1);
+                break;
         }
 
-        if(primaryCode == NOT_A_KEY)
-            return;
-        getCurrentInputConnection().commitText(String.valueOf((char) primaryCode), 1);
+//        if (primaryCode == 10){
+//            return;
+//        }
+
+
+
     }
 
 //    private void handleClose() {
@@ -618,7 +636,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         }
     }
     private void cycleThroughKeyboardsLayers(){
-        Keyboard current = mInputView.getKeyboard();
+        LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
+        current.setCtrlState(false);
         if (current == mCurKeyboard) {
             mInputView.setKeyboard(mSymbolsKeyboard);
         } else if (current == mSymbolsKeyboard) {
