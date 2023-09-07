@@ -62,7 +62,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     private boolean shiftShortcut = false;
     private boolean isCtrlPressed = false;
     private Vibrator vibrationService;
-//    private final ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor();
 
     /**
      * Use this to monitor key events being delivered to the application.
@@ -87,7 +87,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
         LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
         if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
-            if (keyCode == KeyEvent.KEYCODE_BACK){
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
                 mInputView.setKeyboard(mCurKeyboard);
                 return true;
             }
@@ -156,9 +156,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
      */
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) { //pkb key up
-        // If we want to do transformations on text being entered with a hard
-        // keyboard, we need to process the up events to update the meta key
-        // state we are tracking.
         Log.i(TAG, "onKeyUp: "+keyCode);
 
         if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
@@ -428,7 +425,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override
     public void onCurrentInputMethodSubtypeChanged(InputMethodSubtype subtype) {
         Log.d(TAG, "onCurrentInputMethodSubtypeChanged: ");
-        mInputView.setSubtypeOnSpaceKey(subtype);
+//        mInputView.setSubtypeOnSpaceKey(subtype);
     }
 
     /**

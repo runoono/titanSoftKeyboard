@@ -17,21 +17,25 @@
 ** limitations under the License.
 */
 -->
-
-<Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
-    android:keyWidth="10%p"
-    android:horizontalGap="0px"
-    android:verticalGap="0px"
-    android:keyHeight="@dimen/key_height"
+<merge xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     >
+    <Keyboard
+        android:keyWidth="10%p"
+        android:horizontalGap="0px"
+        android:verticalGap="0px"
+        android:keyHeight="@dimen/key_height"
+        >
 
-    <Row android:rowEdgeFlags="bottom" >
-        <Key android:codes="-101" android:keyIcon="@drawable/left_arrow" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
-        <Key android:codes="9" android:keyIcon="@drawable/tab_key" android:keyWidth="15%p"/>
-        <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
-        <Key android:codes="-103" android:keyLabel="CTRL" android:isModifier="true" android:isSticky="true" android:keyWidth="15%p"/>
-        <Key android:codes="-102" android:keyIcon="@drawable/right_arrow" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
-    </Row>
+        <Row android:rowEdgeFlags="bottom" >
+            <Key android:codes="-101" android:keyIcon="@drawable/left_arrow" android:keyWidth="25%p" android:keyEdgeFlags="left" android:isRepeatable="true"/>
+            <Key android:codes="9" android:keyIcon="@drawable/tab_key" android:keyWidth="15%p"/>
+            <Key android:codes="-2" android:keyLabel="SYM" android:keyWidth="20%p"/>
+            <Key android:codes="-103" android:keyLabel="CTRL" android:isModifier="true" android:isSticky="true" android:keyWidth="15%p"/>
+            <Key android:codes="-102" android:keyIcon="@drawable/right_arrow" android:keyWidth="25%p" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+        </Row>
 
-</Keyboard>
+    </Keyboard>
+</merge>
+
     

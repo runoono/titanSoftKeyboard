@@ -1,6 +1,2 @@
 softkeyboard for unihertz titan
-screw kika, I'm gonna make my own keyboard
-with blackjack
-
-
-and hookers
+partially adapted from the Simple Tool's Simple Keyboard

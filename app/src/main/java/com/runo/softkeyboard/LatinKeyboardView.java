@@ -43,23 +43,18 @@ public class LatinKeyboardView extends KeyboardView {
         setOptions();
     }
 
+
+
     @Override
     protected boolean onLongPress(Key key) {
-        if (key.codes[0] == Keyboard.KEYCODE_CANCEL) {
-            getOnKeyboardActionListener().onKey(KEYCODE_OPTIONS, null);
-            return true;
-        } else {
+//        if (key.codes[0] == Keyboard.KEYCODE_CANCEL) {
+//            getOnKeyboardActionListener().onKey(KEYCODE_OPTIONS, null);
+//            return true;
+//        } else {
             return super.onLongPress(key);
-        }
+//        }
     }
 
-
-
-    void setSubtypeOnSpaceKey(final InputMethodSubtype subtype) {
-        final LatinKeyboard keyboard = (LatinKeyboard)getKeyboard();
-        keyboard.setSpaceIcon(getResources().getDrawable(subtype.getIconResId()));
-        invalidateAllKeys();
-    }
     private void setOptions(){
         this.setPreviewEnabled(false);
     }
