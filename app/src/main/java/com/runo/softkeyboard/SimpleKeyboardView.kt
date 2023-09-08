@@ -40,6 +40,7 @@ import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
 import androidx.core.view.ViewCompat
 import androidx.core.view.updateMarginsRelative
+import com.runo.softkeyboard.util.OnKeyboardActionListener
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.HashMap
@@ -63,7 +64,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
 
     private var accessHelper: AccessHelper? = null
 
-    private var mKeyboard: MyKeyboard? = null
+    private var mKeyboard: SimpleKeyboard? = null
     private var mCurrentKeyIndex: Int = NOT_A_KEY
 
     private var mLabelTextSize = 0
@@ -88,8 +89,8 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
     private var mPopupParent: View
     private var mMiniKeyboardOffsetX = 0
     private var mMiniKeyboardOffsetY = 0
-    private val mMiniKeyboardCache: MutableMap<MyKeyboard.Key, View?>
-    private var mKeys = ArrayList<MyKeyboard.Key>()
+    private val mMiniKeyboardCache: MutableMap<SimpleKeyboard.Key, View?>
+    private var mKeys = ArrayList<SimpleKeyboard.Key>()
     private var mMiniKeyboardSelectedKeyIndex = -1
 
     var mOnKeyboardActionListener: OnKeyboardActionListener? = null
@@ -129,10 +130,10 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
     private var mShowKeyBorders: Boolean = false
     private var mUsingSystemTheme: Boolean = true
 
-    private var mToolbarHolder: View? = null
-    private var mClipboardManagerHolder: View? = null
-    private var mEmojiPaletteHolder: View? = null
-    private var emojiCompatMetadataVersion = 0
+//    private var mToolbarHolder: View? = null
+//    private var mClipboardManagerHolder: View? = null
+//    private var mEmojiPaletteHolder: View? = null
+//    private var emojiCompatMetadataVersion = 0
 
     // For multi-tap
     private var mLastTapTime = 0L
@@ -168,7 +169,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     init {
-        val attributes = context.obtainStyledAttributes(attrs, R.styleable.MyKeyboardView, 0, defStyleRes)
+        val attributes = context.obtainStyledAttributes(attrs, R.styleable.SimpleKeyboardView, 0, defStyleRes)
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val keyTextSize = 0
         val indexCnt = attributes.indexCount
@@ -177,7 +178,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
             for (i in 0 until indexCnt) {
                 val attr = attributes.getIndex(i)
                 when (attr) {
-                    R.styleable.MyKeyboardView_keyTextSize -> mKeyTextSize = attributes.getDimensionPixelSize(attr, 18)
+                    R.styleable.SimpleKeyboardView_keyTextSize -> mKeyTextSize = attributes.getDimensionPixelSize(attr, 18)
                 }
             }
         } finally {
@@ -253,7 +254,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
      * Attaches a keyboard to this view. The keyboard can be switched at any time and the view will re-layout itself to accommodate the keyboard.
      * @param keyboard the keyboard to display in this view
      */
-    fun setKeyboard(keyboard: MyKeyboard) {
+    fun setKeyboard(keyboard: SimpleKeyboard) {
         if (mKeyboard != null) {
             showPreview(NOT_A_KEY)
         }
@@ -262,13 +263,13 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
         removeMessages()
         mKeyboard = keyboard
         val keys = mKeyboard!!.mKeys
-        mKeys = keys!!.toMutableList() as ArrayList<MyKeyboard.Key>
+        mKeys = keys!!.toMutableList() as ArrayList<SimpleKeyboard.Key>
         requestLayout()
         mKeyboardChanged = true
         invalidateAllKeys()
         computeProximityThreshold(keyboard)
         mMiniKeyboardCache.clear()
-        mToolbarHolder?.beInvisibleIf(context.isDeviceLocked)
+//        mToolbarHolder?.beInvisibleIf(context.isDeviceLocked)
 
         accessHelper = AccessHelper(this, mKeyboard?.mKeys.orEmpty())
         ViewCompat.setAccessibilityDelegate(this, accessHelper)
@@ -282,9 +283,9 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
     /** Sets the top row above the keyboard containing a couple buttons and the clipboard **/
     fun setKeyboardHolder(binding: KeyboardViewKeyboardBinding) {
         keyboardViewBinding = binding.apply {
-            mToolbarHolder = toolbarHolder
-            mClipboardManagerHolder = clipboardManagerHolder
-            mEmojiPaletteHolder = emojiPaletteHolder
+//            mToolbarHolder = toolbarHolder
+//            mClipboardManagerHolder = clipboardManagerHolder
+//            mEmojiPaletteHolder = emojiPaletteHolder
 
             settingsCog.setOnLongClickListener { context.toast(R.string.settings); true; }
             settingsCog.setOnClickListener {
@@ -295,25 +296,25 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
 
-            pinnedClipboardItems.setOnLongClickListener { context.toast(R.string.clipboard); true; }
-            pinnedClipboardItems.setOnClickListener {
-                vibrateIfNeeded()
-                openClipboardManager()
-            }
+//            pinnedClipboardItems.setOnLongClickListener { context.toast(R.string.clipboard); true; }
+//            pinnedClipboardItems.setOnClickListener {
+//                vibrateIfNeeded()
+//                openClipboardManager()
+//            }
+//
+//            clipboardClear.setOnLongClickListener { context.toast(R.string.clear_clipboard_data); true; }
+//            clipboardClear.setOnClickListener {
+//                vibrateIfNeeded()
+//                clearClipboardContent()
+//                toggleClipboardVisibility(false)
+//            }
 
-            clipboardClear.setOnLongClickListener { context.toast(R.string.clear_clipboard_data); true; }
-            clipboardClear.setOnClickListener {
-                vibrateIfNeeded()
-                clearClipboardContent()
-                toggleClipboardVisibility(false)
-            }
-
-            suggestionsHolder.addOnLayoutChangeListener(object : OnLayoutChangeListener {
-                override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
-                    updateSuggestionsToolbarLayout()
-                    binding.suggestionsHolder.removeOnLayoutChangeListener(this)
-                }
-            })
+//            suggestionsHolder.addOnLayoutChangeListener(object : OnLayoutChangeListener {
+//                override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
+//                    updateSuggestionsToolbarLayout()
+//                    binding.suggestionsHolder.removeOnLayoutChangeListener(this)
+//                }
+//            })
         }
 
         val clipboardManager = (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
@@ -325,25 +326,25 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
             setupStoredClips()
         }
 
-        binding.apply {
-            clipboardManagerClose.setOnClickListener {
-                vibrateIfNeeded()
-                closeClipboardManager()
-            }
-
-            clipboardManagerManage.setOnLongClickListener { context.toast(R.string.manage_clipboard_items); true; }
-            clipboardManagerManage.setOnClickListener {
-                Intent(context, ManageClipboardItemsActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(this)
-                }
-            }
-
-            emojiPaletteClose.setOnClickListener {
-                vibrateIfNeeded()
-                closeEmojiPalette()
-            }
-        }
+//        binding.apply {
+//            clipboardManagerClose.setOnClickListener {
+//                vibrateIfNeeded()
+//                closeClipboardManager()
+//            }
+//
+//            clipboardManagerManage.setOnLongClickListener { context.toast(R.string.manage_clipboard_items); true; }
+//            clipboardManagerManage.setOnClickListener {
+//                Intent(context, ManageClipboardItemsActivity::class.java).apply {
+//                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                    context.startActivity(this)
+//                }
+//            }
+//
+//            emojiPaletteClose.setOnClickListener {
+//                vibrateIfNeeded()
+//                closeEmojiPalette()
+//            }
+//        }
     }
 
     fun setEditorInfo(editorInfo: EditorInfo) {
@@ -490,7 +491,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
      * in computing the touch distance from a key's center to avoid taking a square root.
      * @param keyboard
      */
-    private fun computeProximityThreshold(keyboard: MyKeyboard?) {
+    private fun computeProximityThreshold(keyboard: SimpleKeyboard?) {
         if (keyboard == null) {
             return
         }
@@ -660,7 +661,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
         mDirtyRect.setEmpty()
     }
 
-    private fun setupKeyBackground(key: MyKeyboard.Key, keyCode: Int, canvas: Canvas) {
+    private fun setupKeyBackground(key: SimpleKeyboard.Key, keyCode: Int, canvas: Canvas) {
         val keyBackground = when {
             keyCode == KEYCODE_SPACE && key.label.isBlank() -> getSpaceKeyBackground()
             keyCode == KEYCODE_ENTER -> getEnterKeyBackground()
@@ -934,7 +935,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
     /**
      * Invalidates a key so that it will be redrawn on the next repaint. Use this method if only one key is changing it's content. Any changes that
      * affect the position or size of the key may not be honored.
-     * @param keyIndex the index of the key in the attached [MyKeyboard].
+     * @param keyIndex the index of the key in the attached [SimpleKeyboard].
      */
     private fun invalidateKey(keyIndex: Int) {
         if (keyIndex < 0 || keyIndex >= mKeys.size) {
@@ -980,7 +981,7 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
      * @return true if the long press is handled, false otherwise. Subclasses should call the method on the base class if the subclass doesn't wish to
      * handle the call.
      */
-    private fun onLongPress(popupKey: MyKeyboard.Key, me: MotionEvent): Boolean {
+    private fun onLongPress(popupKey: SimpleKeyboard.Key, me: MotionEvent): Boolean {
         if (popupKey.code == KEYCODE_EMOJI) {
             ChangeLanguagePopup(this, onSelect = {
                 mOnKeyboardActionListener?.reloadKeyboard()
@@ -1029,9 +1030,9 @@ class SimpleKeyboardView @JvmOverloads constructor(context: Context, attrs: Attr
                     }
 
                     val keyboard = if (popupKey.popupCharacters != null) {
-                        MyKeyboard(context, popupKeyboardId, popupKey.popupCharacters!!, popupKey.width)
+                        SimpleKeyboard(context, popupKeyboardId, popupKey.popupCharacters!!, popupKey.width)
                     } else {
-                        MyKeyboard(context, popupKeyboardId, 0)
+                        SimpleKeyboard(context, popupKeyboardId, 0)
                     }
 
                     mMiniKeyboard!!.setKeyboard(keyboard)
