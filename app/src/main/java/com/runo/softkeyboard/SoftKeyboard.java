@@ -47,7 +47,7 @@ import java.util.concurrent.Executors;
 public class SoftKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
 
     private static final String TAG = "titan keyboard";
-    private InputMethodManager mInputMethodManager;
+//    private InputMethodManager mInputMethodManager;
     private LatinKeyboardView mInputView;
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
@@ -72,80 +72,93 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //note: this method is a bit spammy due to key repetition
-        Log.i(TAG, "onKeyDown: "+keyCode);
+        Log.d(TAG, "onKeyDown: "+keyCode);
 
-        if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
-            isCtrlPressed =true;
-            mQwertyKeyboard.setCtrlState(true);
-        }
+        InputConnection ic = getCurrentInputConnection();
+        if(ic != null){
+            LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
+            if(current != null){
+                if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
+                    isCtrlPressed =true;
+                    current.setCtrlState(true);
+                }
 
-        //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
-        if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL);
-            return true;
-        }
+                if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
+                    if (keyCode == KeyEvent.KEYCODE_BACK){
+                        mInputView.setKeyboard(mCurKeyboard);
+                        return true;
+                    }
+                    int pressedKey = translateKeyToIndex(keyCode);
+                    if(pressedKey != NOT_A_KEY ){
+                        Keyboard.Key key = current.getKeys().get(pressedKey);
+                        int code = key.codes[0];
+                        handleCharacter(code, null);
+                        return true;
+                    }
+                }
 
-        LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-        if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
-            if (keyCode == KeyEvent.KEYCODE_BACK){
-                mInputView.setKeyboard(mCurKeyboard);
-                return true;
-            }
-            int pressedKey = translateKeyToIndex(keyCode);
-            if(pressedKey != NOT_A_KEY ){
-                Keyboard.Key key = current.getKeys().get(pressedKey);
-                int code = key.codes[0];
-                handleCharacter(code, null);
-                return true;
-            }
-        }
-
-
-        if(altLock && keyCode != KeyEvent.KEYCODE_SPACE){
-            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_ON, event.getDeviceId(), event.getScanCode());
-            getCurrentInputConnection().sendKeyEvent(ke);
-            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-            getCurrentInputConnection().sendKeyEvent(ke);
-            return true;
-        } else if (shiftLock) {
-            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_SHIFT_ON, event.getDeviceId(), event.getScanCode());
-            getCurrentInputConnection().sendKeyEvent(ke);
-            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-            getCurrentInputConnection().sendKeyEvent(ke);
-            return true;
-        }
-
-
-        if(event.isAltPressed()){
-            switch (keyCode){
-                case KeyEvent.KEYCODE_ENTER:
-                    sendDefaultEditorAction(true);
+                if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
+                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
+                    ic.sendKeyEvent(ke);
+                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                    ic.sendKeyEvent(ke);
                     return true;
-                case KeyEvent.KEYCODE_SPACE:
+                }
+
+                //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
+                if(keyCode == KeyEvent.KEYCODE_DEL && !event.isAltPressed()){
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);//I cannot count the amount of text I've accidentally deleted with this, if you want it back, recompile the keyboard
+                    return super.onKeyDown(keyCode, event);
+                }
+                //old version that just disables it for altlock and numeric keyboard
+//                if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
+//                    sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL);
+//                    return true;
+//                }
+
+                if(keyCode == KeyEvent.KEYCODE_SPACE){
+//                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+//                    return super.onKeyDown(keyCode, event);
                     handleCharacter(' ', null);
                     return true;
+                }
+
+
+                if((altLock || current==mNumericKeyboard) && (keyCode != KeyEvent.KEYCODE_ENTER && keyCode != KeyEvent.KEYCODE_BACK)){
+                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_ON, event.getDeviceId(), event.getScanCode());
+                    ic.sendKeyEvent(ke);
+                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                    ic.sendKeyEvent(ke);
+                    return true;
+                } else if (shiftLock) {
+                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_SHIFT_ON, event.getDeviceId(), event.getScanCode());
+                    ic.sendKeyEvent(ke);
+                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                    ic.sendKeyEvent(ke);
+                    return true;
+                }
+            }
+
+            if(event.isAltPressed()){
+                switch (keyCode){
+                    case KeyEvent.KEYCODE_ENTER:
+                        sendDefaultEditorAction(true);
+                        return true;
+//                    case KeyEvent.KEYCODE_SPACE:
+//                        handleCharacter(' ', null);
+//                        return true;
+                }
+            }else if(event.isShiftPressed()){
+                switch (keyCode){
+                    case KeyEvent.KEYCODE_ENTER:
+                        handleCharacter('\n', null);
+                        return true;
+                    case KeyEvent.KEYCODE_DEL:
+                        sendDownUpKeyEvents(KeyEvent.KEYCODE_FORWARD_DEL);
+                        return true;
+                }
             }
         }
-
-        if(event.isShiftPressed()){
-            switch (keyCode){
-                case KeyEvent.KEYCODE_ENTER:
-                    handleCharacter('\n', null);
-                    return true;
-                case KeyEvent.KEYCODE_DEL:
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_FORWARD_DEL);
-                    return true;
-            }
-        }
-
-        if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
-            KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
-            getCurrentInputConnection().sendKeyEvent(ke);
-            ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-            getCurrentInputConnection().sendKeyEvent(ke);
-            return true;
-        }
-
         return super.onKeyDown(keyCode, event);
     }
 
@@ -156,94 +169,95 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
      */
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) { //pkb key up
-        // If we want to do transformations on text being entered with a hard
-        // keyboard, we need to process the up events to update the meta key
-        // state we are tracking.
-        Log.i(TAG, "onKeyUp: "+keyCode);
+        Log.d(TAG, "onKeyUp: "+keyCode);
+        InputConnection ic = getCurrentInputConnection();
+        if(ic != null){
 
-        if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
-            isCtrlPressed = false;
-            mQwertyKeyboard.setCtrlState(false);
-        }
-
-        if (event.isAltPressed()) { //bindings for alt key
-            if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
-                altShortcut = true;
-                if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
-                    cycleThroughKeyboardsLayers();
-                    InputConnection ic = getCurrentInputConnection();
-                    if (ic != null) {
+            if (event.isAltPressed()) { //bindings for alt key
+                if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
+                    altShortcut = true;
+                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
+                        cycleThroughKeyboardsLayers();
                         ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
                         ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                     }
+                    return true;
                 }
+            }
+            if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
+                cycleThroughKeyboardsLayers();
                 return true;
             }
-        }
-        if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
-            cycleThroughKeyboardsLayers();
-            return true;
-        }
 
-        Keyboard current = mInputView.getKeyboard();
-        if(current == mQwertyKeyboard){
-            if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
-                getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
-                shiftLock = false;
-                if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
-                    altShortcut = false;
-                }else{
-                    if(altLock){
-                        if((System.currentTimeMillis() - lastAltTime) > 300L){
-                            Log.d(TAG, "onKeyUp: alt lock off");
-                            altLock = false;
-                            getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_ALT_ON);
+            LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
+            if(current != null){
+                if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
+                    isCtrlPressed = false;
+                    current.setCtrlState(false);
+                }
+                if(current == mQwertyKeyboard){
+                    if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
+                        ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
+                        if(shiftLock)
                             vibrate(1);
-                            return true;
-                        }
-                    }else {//check for double tap
-                        if((System.currentTimeMillis() - lastAltTime) < 800L){
-                            Log.d(TAG, "onKeyUp: alt lock on");
-                            altLock = true;
-                            vibrate(2);
-
-                            return true;
+                        shiftLock = false;
+                        if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
+                            altShortcut = false;
                         }else{
-                            lastAltTime = System.currentTimeMillis();
+                            if(altLock){
+                                if((System.currentTimeMillis() - lastAltTime) > 300L){
+                                    Log.d(TAG, "onKeyUp: alt lock off");
+                                    altLock = false;
+                                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                                    vibrate(1);
+                                    return true;
+                                }
+                            }else {//check for double tap
+                                if((System.currentTimeMillis() - lastAltTime) < 800L){
+                                    Log.d(TAG, "onKeyUp: alt lock on");
+                                    altLock = true;
+                                    vibrate(2);
+
+                                    return true;
+                                }else{
+                                    lastAltTime = System.currentTimeMillis();
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-
-            if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-                getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                altLock = false;
-                if(shiftShortcut){
-                    shiftShortcut = false;
-                }else{
-                    if(shiftLock){
-                        if((System.currentTimeMillis() - lastShiftTime) > 300L){
-                            Log.d(TAG, "onKeyUp: shift lock off");
-                            shiftLock = false;
-                            getCurrentInputConnection().clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
+                    if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
+                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                        if(altLock)
                             vibrate(1);
-                            return true;
-                        }
-                    }else {//check for double tap
-                        if((System.currentTimeMillis() - lastShiftTime) < 800L){
-                            Log.d(TAG, "onKeyUp: shift lock on");
-                            vibrate(2);
-                            shiftLock = true;
-                            return true;
+                        altLock = false;
+                        if(shiftShortcut){
+                            shiftShortcut = false;
                         }else{
-                            lastShiftTime = System.currentTimeMillis();
+                            if(shiftLock){
+                                if((System.currentTimeMillis() - lastShiftTime) > 300L){
+                                    Log.d(TAG, "onKeyUp: shift lock off");
+                                    shiftLock = false;
+                                    ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
+                                    vibrate(1);
+                                    return true;
+                                }
+                            }else {//check for double tap
+                                if((System.currentTimeMillis() - lastShiftTime) < 800L){
+                                    Log.d(TAG, "onKeyUp: shift lock on");
+                                    vibrate(2);
+                                    shiftLock = true;
+                                    return true;
+                                }else{
+                                    lastShiftTime = System.currentTimeMillis();
+                                }
+                            }
                         }
                     }
+                } else if (current == mNumericKeyboard) {
+                    return super.onKeyUp(keyCode, event);
                 }
             }
-        } else if (current == mNumericKeyboard) {
-            return super.onKeyUp(keyCode, event);
         }
 
         return super.onKeyUp(keyCode, event);
@@ -275,7 +289,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override public void onCreate() {
         Log.d(TAG, "onCreate: ");
         super.onCreate();
-        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+//        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
         vibrationService = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
     
@@ -442,65 +456,72 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
     @Override
     public void onText(CharSequence text) {
+        Log.d(TAG, "onText: "+text);
     }
 
     private void handleCharacter(int primaryCode, int[] keyCodes) {
         if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
             return;
 
-        if (isInputViewShown()) {
-            if (mInputView.isShifted()) {
-                primaryCode = Character.toUpperCase(primaryCode);
+        InputConnection ic = getCurrentInputConnection();
+        if(ic != null) {
+            LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
+            if(current != null){
+                switch (primaryCode){
+                    case LatinKeyboardView.KEYCODE_EDITOR_ACTION:
+                        sendDefaultEditorAction(true);
+                        break;
+                    case Keyboard.KEYCODE_MODE_CHANGE:
+                        cycleThroughKeyboardsLayers();
+                        break;
+                    case LatinKeyboardView.KEYCODE_LEFT:
+                        if(current.isCtrlOn()){
+                            KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, 0, KeyEvent.META_CTRL_ON);
+                            ic.sendKeyEvent(ke);
+                            KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                            ic.sendKeyEvent(ke);
+                        }else{
+                            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
+                        }
+                        break;
+                    case LatinKeyboardView.KEYCODE_RIGHT:
+                        if(current.isCtrlOn()){
+                            KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT, 0, KeyEvent.META_CTRL_ON);
+                            ic.sendKeyEvent(ke);
+                            KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                            ic.sendKeyEvent(ke);
+                        }else{
+                            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
+                        }
+                        break;
+                    case LatinKeyboardView.KEYCODE_UP:
+                        if(current.isCtrlOn()){
+                            KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP, 0, KeyEvent.META_CTRL_ON);
+                            ic.sendKeyEvent(ke);
+                            KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                            ic.sendKeyEvent(ke);
+                        }else{
+                            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_UP);
+                        }
+                        break;
+                    case LatinKeyboardView.KEYCODE_DOWN:
+                        if(current.isCtrlOn()){
+                            KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN, 0, KeyEvent.META_CTRL_ON);
+                            ic.sendKeyEvent(ke);
+                            KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+                            ic.sendKeyEvent(ke);
+                        }else{
+                            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_DOWN);
+                        }
+                        break;
+                    default:
+                        ic.commitText(String.valueOf((char) primaryCode), 1);
+                        break;
+                }
             }
         }
-
-//        else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
-//                && mInputView != null) {
-//            cycleThroughKeyboardsLayers();
-//        } else if(primaryCode == LatinKeyboardView.KEYCODE_LEFT){
-//            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
-//        } else if(primaryCode == LatinKeyboardView.KEYCODE_RIGHT){
-//            sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
-//        }
-
-        switch (primaryCode){
-            case 10://unicode enter
-                sendDefaultEditorAction(true);
-                break;
-            case Keyboard.KEYCODE_MODE_CHANGE:
-                cycleThroughKeyboardsLayers();
-                break;
-            case LatinKeyboardView.KEYCODE_LEFT:
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
-                break;
-            case LatinKeyboardView.KEYCODE_RIGHT:
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
-                break;
-            case LatinKeyboardView.KEYCODE_UP:
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_UP);
-                break;
-            case LatinKeyboardView.KEYCODE_DOWN:
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_DOWN);
-                break;
-            default:
-                getCurrentInputConnection().commitText(String.valueOf((char) primaryCode), 1);
-                break;
-        }
-
-//        if (primaryCode == 10){
-//            return;
-//        }
-
-
-
     }
 
-//    private void handleClose() {
-////        commitTyped(getCurrentInputConnection());
-//        requestHideSelf(0);
-//        mInputView.closing();
-//    }
-    
     public void swipeRight() {
         Log.d(TAG, "swipeRight: ");
     }
@@ -527,7 +548,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     }
 
     public static int translateKeyToIndex(int keyCode){
-        Log.i(TAG, "translateKeyToIndex: "+keyCode);
+        Log.d(TAG, "translateKeyToIndex: "+keyCode);
         int index = NOT_A_KEY; //used for bcksp alt etc, keys I dont wanna remap
         switch (keyCode){
             case KeyEvent.KEYCODE_Q://row 1
@@ -637,13 +658,15 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     }
     private void cycleThroughKeyboardsLayers(){
         LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-        current.setCtrlState(false);
-        if (current == mCurKeyboard) {
-            mInputView.setKeyboard(mSymbolsKeyboard);
-        } else if (current == mSymbolsKeyboard) {
-            mInputView.setKeyboard(mSymbolsShiftedKeyboard);
-        } else if (current == mSymbolsShiftedKeyboard) {
-            mInputView.setKeyboard(mCurKeyboard);
+        if(current != null){
+            current.setCtrlState(false);
+            if (current == mCurKeyboard) {
+                mInputView.setKeyboard(mSymbolsKeyboard);
+            } else if (current == mSymbolsKeyboard) {
+                mInputView.setKeyboard(mSymbolsShiftedKeyboard);
+            } else if (current == mSymbolsShiftedKeyboard) {
+                mInputView.setKeyboard(mCurKeyboard);
+            }
         }
     }
 }

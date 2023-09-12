@@ -60,7 +60,7 @@
         <Key android:codes="124" android:keyLabel="|"/>                             //7 b
         <Key android:codes="92" android:keyLabel="\\" />                            //8 n
         <Key android:codes="191" android:keyLabel="¿"/>                             //9 m
-        <Key android:codes="10" android:keyIcon="@drawable/enter_key" android:keyEdgeFlags="right"/>//EMPTY enter
+        <Key android:codes="-106" android:keyIcon="@drawable/enter_key" android:keyEdgeFlags="right"/>//EMPTY enter
     </Row>
 
     <Row android:rowEdgeFlags="bottom">

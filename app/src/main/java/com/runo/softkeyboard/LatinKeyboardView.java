@@ -31,7 +31,9 @@ public class LatinKeyboardView extends KeyboardView {
     static final int KEYCODE_CTRL = -103;
     static final int KEYCODE_UP = -104;
     static final int KEYCODE_DOWN = -105;
+    static final int KEYCODE_EDITOR_ACTION = -106;
     static final int NOT_A_KEY = -1;
+
 
     public LatinKeyboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
