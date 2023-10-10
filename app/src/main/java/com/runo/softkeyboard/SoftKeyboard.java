@@ -78,9 +78,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         if(ic != null){
             LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
             if(current != null){
-                if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
-                    isCtrlPressed =true;
-                    current.setCtrlState(true);
+                //fixes sym key being "stuck" for apps that read keycodes directly like termux
+                if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
+                    return true;
                 }
 
                 if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
@@ -97,7 +97,14 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     }
                 }
 
-                if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
+                //in gargoyle 1.2 fn is keycode unknown. this a bandaid fix
+                if((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
+                    isCtrlPressed =true;
+                    current.setCtrlState(true);
+                    return true;
+                }
+
+                if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
                     KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
                     ic.sendKeyEvent(ke);
                     ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
@@ -105,27 +112,20 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     return true;
                 }
 
+                if(keyCode == KeyEvent.KEYCODE_SPACE){
+                     ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                     return super.onKeyDown(keyCode, event);
+                }
+
+
                 //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
                 if(keyCode == KeyEvent.KEYCODE_DEL && !event.isAltPressed()){
                     ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);//I cannot count the amount of text I've accidentally deleted with this, if you want it back, recompile the keyboard
                     return super.onKeyDown(keyCode, event);
                 }
-                //old version that just disables it for altlock and numeric keyboard
-//                if((altLock || mCurKeyboard == mNumericKeyboard) && keyCode == KeyEvent.KEYCODE_DEL){ //dont sent alt+backspace with alt lock since it acts like ctrl backspace, its annoying
-//                    sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL);
-//                    return true;
-//                }
-
-                if(keyCode == KeyEvent.KEYCODE_SPACE){
-//                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-//                    return super.onKeyDown(keyCode, event);
-                    handleCharacter(' ', null);
-                    return true;
-                }
-
 
                 if((altLock || current==mNumericKeyboard) && (keyCode != KeyEvent.KEYCODE_ENTER && keyCode != KeyEvent.KEYCODE_BACK)){
-                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_ON, event.getDeviceId(), event.getScanCode());
+                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_RIGHT_ON, event.getDeviceId(), event.getScanCode());
                     ic.sendKeyEvent(ke);
                     ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
                     ic.sendKeyEvent(ke);
@@ -144,9 +144,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     case KeyEvent.KEYCODE_ENTER:
                         sendDefaultEditorAction(true);
                         return true;
-//                    case KeyEvent.KEYCODE_SPACE:
-//                        handleCharacter(' ', null);
-//                        return true;
+                    case KeyEvent.KEYCODE_SPACE:
+                        handleCharacter('\t', null);
+                        return true;
                 }
             }else if(event.isShiftPressed()){
                 switch (keyCode){
@@ -191,7 +191,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
             LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
             if(current != null){
-                if((keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
+                if((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
                     isCtrlPressed = false;
                     current.setCtrlState(false);
                 }
