@@ -31,11 +31,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
-import android.view.inputmethod.InputMethodManager;
-import android.view.inputmethod.InputMethodSubtype;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Example of writing an input method for a soft keyboard.  This code is
@@ -47,7 +42,6 @@ import java.util.concurrent.Executors;
 public class SoftKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
 
     private static final String TAG = "titan keyboard";
-//    private InputMethodManager mInputMethodManager;
     private LatinKeyboardView mInputView;
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
@@ -60,9 +54,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     private boolean shiftLock = false;
     private boolean altShortcut = false;
     private boolean shiftShortcut = false;
-    private boolean isCtrlPressed = false;
+    private boolean mIsCtrlPressed = false;
     private Vibrator vibrationService;
-//    private final ExecutorService keyboardExecutor = Executors.newSingleThreadExecutor();
 
     /**
      * Use this to monitor key events being delivered to the application.
@@ -72,92 +65,81 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //note: this method is a bit spammy due to key repetition
-        Log.d(TAG, "onKeyDown: "+keyCode);
+        Log.d(TAG, "onKeyDown: " + keyCode);
 
         InputConnection ic = getCurrentInputConnection();
-        if(ic != null && mInputView != null){
-            LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-            if(current != null){
-                //fixes sym key being "stuck" for apps that read keycodes directly like termux
-                if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
+        //new
+        if (ic != null) {
+            LatinKeyboard current = null;
+            if (mInputView != null) {
+                current = (LatinKeyboard) mInputView.getKeyboard();
+            }
+            //global key maps, run regardless of keyboard state, even if keyboard is not visible
+            if ((current != null && current.isCtrlOn()) || (mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))) {
+                sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_CTRL_ON); //TODO, move this down somehow so it can intercept other softkeyboard events
+                return true;
+            } else if (keyCode == KeyEvent.KEYCODE_SPACE) { //fix for alt+space bug that opens up android default symbol panel, not a fan, especially randomly
+                if (event.isAltPressed()) {
+                    handleCharacter('\t', null); //seems very helpful for now
                     return true;
-                }
-
-                if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) { //translate physical keys to on screen keyboard
-                    if (keyCode == KeyEvent.KEYCODE_BACK){
-                        mInputView.setKeyboard(mCurKeyboard);
-                        return true;
-                    }
-                    int pressedKey = translateKeyToIndex(keyCode);
-                    if(pressedKey != NOT_A_KEY ){
-                        Keyboard.Key key = current.getKeys().get(pressedKey);
-                        int code = key.codes[0];
-                        handleCharacter(code, null);
-                        return true;
-                    }
-                }
-
-                //in gargoyle 1.2 fn is keycode unknown. this a bandaid fix
-                if((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !isCtrlPressed){
-                    isCtrlPressed =true;
-                    current.setCtrlState(true);
-                    return true;
-                }
-
-                if(current.isCtrlOn() || (isCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))){
-                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_CTRL_ON, event.getDeviceId(), event.getScanCode());
-                    ic.sendKeyEvent(ke);
-                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                    ic.sendKeyEvent(ke);
-                    return true;
-                }
-
-                if(keyCode == KeyEvent.KEYCODE_SPACE && !event.isAltPressed()){
-                     ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                     return super.onKeyDown(keyCode, event);
-                }
-
-
-                //I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
-                if(keyCode == KeyEvent.KEYCODE_DEL && !event.isAltPressed()){
-                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);//I cannot count the amount of text I've accidentally deleted with this, if you want it back, recompile the keyboard
+                } else {
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
                     return super.onKeyDown(keyCode, event);
                 }
-
-                if((altLock || current==mNumericKeyboard) && (keyCode != KeyEvent.KEYCODE_ENTER && keyCode != KeyEvent.KEYCODE_BACK)){
-                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_ALT_RIGHT_ON, event.getDeviceId(), event.getScanCode());
-                    ic.sendKeyEvent(ke);
-                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                    ic.sendKeyEvent(ke);
+            } else if (keyCode == KeyEvent.KEYCODE_DEL) {//I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
+                if (event.isAltPressed()) { //if you really wanna delete the entire line/whatever the fuck alt+backspace feels like, here you go
+                    return super.onKeyDown(keyCode, event);
+                } else if (event.isShiftPressed()) {
+                    sendDownUpKeyEvents(KeyEvent.KEYCODE_FORWARD_DEL);
+                    return true;
+                } else {
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);//I cannot count the amount of text I've accidentally deleted with this, if you want it back, recompile the keyboard
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_RIGHT_ON);
+                    return super.onKeyDown(keyCode, event);
+                }
+            } else if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (event.isAltPressed()) { //fix for apps that don't listen to keyboard enter for the editor action
+                    sendDefaultEditorAction(true);
+                    return true;
+                } else if (event.isShiftPressed()) {
+                    handleCharacter('\n', null);
+                    return true;
+                } else {
+                    return super.onKeyDown(keyCode, event);
+                }
+            } else if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM) { // switch keyboard layers, handle on key up
+                return true;
+            } else if ((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && !mIsCtrlPressed) {
+                mIsCtrlPressed = true;
+//                current.setCtrlState(true); //doesnt turn on ctrl indicator, think the keyboard needs to call repaint?
+                return true;
+            }
+            //on screen keyboard based remaps
+            else if (current == mQwertyKeyboard) {//global/default maps
+                if (altLock) {
+                    sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_ALT_RIGHT_ON);
                     return true;
                 } else if (shiftLock) {
-                    KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), KeyEvent.META_SHIFT_ON, event.getDeviceId(), event.getScanCode());
-                    ic.sendKeyEvent(ke);
-                    ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                    ic.sendKeyEvent(ke);
+                    sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_SHIFT_ON);
                     return true;
                 }
-            }
-
-            if(event.isAltPressed()){
-                switch (keyCode){
-                    case KeyEvent.KEYCODE_ENTER:
-                        sendDefaultEditorAction(true);
-                        return true;
-                    case KeyEvent.KEYCODE_SPACE:
-                        handleCharacter('\t', null);
-                        return true;
+            } else if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {//symbol layer remaps
+                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    mInputView.setKeyboard(mCurKeyboard);
+                    return true;
                 }
-            }else if(event.isShiftPressed()){
-                switch (keyCode){
-                    case KeyEvent.KEYCODE_ENTER:
-                        handleCharacter('\n', null);
-                        return true;
-                    case KeyEvent.KEYCODE_DEL:
-                        sendDownUpKeyEvents(KeyEvent.KEYCODE_FORWARD_DEL);
-                        return true;
+                int pressedKey = translateKeyToIndex(keyCode);
+                if (pressedKey != NOT_A_KEY) {
+                    Keyboard.Key key = current.getKeys().get(pressedKey);
+                    int code = key.codes[0];
+                    handleCharacter(code, null);
+                    return true;
                 }
+            } else if (current == mNumericKeyboard) {//numeric keyboard remaps
+                sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_ALT_RIGHT_ON);
+                return true;
             }
+            //return with default
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -167,101 +149,94 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
      * We get first crack at them, and can either resume them or let them
      * continue to the app.
      */
+    //TODO clean this up like keydown
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) { //pkb key up
-        Log.d(TAG, "onKeyUp: "+keyCode);
+        Log.d(TAG, "onKeyUp: " + keyCode);
         InputConnection ic = getCurrentInputConnection();
-        if(ic != null){
-
-            if (event.isAltPressed()) { //bindings for alt key
-                if(keyCode != KeyEvent.KEYCODE_ALT_RIGHT){
-                    altShortcut = true;
-                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) { //alt+space
-                        cycleThroughKeyboardsLayers();
-                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                        ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
-                    }
+        if (ic != null) {
+            //new
+            LatinKeyboard current = null;
+            if (mInputView != null) {
+                current = (LatinKeyboard) mInputView.getKeyboard();
+            }
+            //global key maps, run regardless of keyboard state, even if keyboard is not visible
+            if ((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT) && mIsCtrlPressed) {
+                mIsCtrlPressed = false;
+//                current.setCtrlState(false);
+            }
+            //on screen keyboard based remaps
+            if (current != null) {
+                if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM) {
+                    cycleThroughKeyboardsLayers();
                     return true;
                 }
             }
-            if(keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SYM){
-                cycleThroughKeyboardsLayers();
-                return true;
-            }
 
-            if(mInputView != null){
-                LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-                if(current != null){
-                    if((keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)&& isCtrlPressed) {
-                        isCtrlPressed = false;
-                        current.setCtrlState(false);
+            if (current == mQwertyKeyboard) {//global/default maps
+                if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT && event.isAltPressed()) { //alt+space, change through layers
+                    cycleThroughKeyboardsLayers();
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                    ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {//alt lock
+                    ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
+                    if (shiftLock) {
+                        vibrate(1);
+                        shiftLock = false;
+                    }else if (altShortcut) {//key up was called after an alt shortcut ie alt + shift, alt + space
+                        altShortcut = false;
+                    } else {
+                        if (altLock) {
+                            if ((System.currentTimeMillis() - lastAltTime) > 300L) {
+                                Log.d(TAG, "onKeyUp: alt lock off");
+                                altLock = false;
+                                ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                                vibrate(1);
+                            }
+                            return true;
+                        } else {//check for double tap
+                            if ((System.currentTimeMillis() - lastAltTime) < 800L) {
+                                Log.d(TAG, "onKeyUp: alt lock on");
+                                altLock = true;
+                                vibrate(2);
+
+                                return true;
+                            } else {
+                                lastAltTime = System.currentTimeMillis();
+                            }
+                        }
                     }
-                    if(current == mQwertyKeyboard){
-                        if(keyCode == KeyEvent.KEYCODE_ALT_RIGHT){
-                            ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
-                            if(shiftLock)
+                }else if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) {
+                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
+                    if (altLock){
+                        vibrate(1);
+                        altLock = false;
+                    } else if (shiftShortcut) {
+                        shiftShortcut = false;
+                    } else {
+                        if (shiftLock) {
+                            if ((System.currentTimeMillis() - lastShiftTime) > 300L) {
+                                Log.d(TAG, "onKeyUp: shift lock off");
+                                shiftLock = false;
+                                ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                                 vibrate(1);
-                            shiftLock = false;
-                            if(altShortcut){//key up was called after an alt shortcut ie alt + shift, alt + space
-                                altShortcut = false;
-                            }else{
-                                if(altLock){
-                                    if((System.currentTimeMillis() - lastAltTime) > 300L){
-                                        Log.d(TAG, "onKeyUp: alt lock off");
-                                        altLock = false;
-                                        ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                                        vibrate(1);
-                                        return true;
-                                    }
-                                }else {//check for double tap
-                                    if((System.currentTimeMillis() - lastAltTime) < 800L){
-                                        Log.d(TAG, "onKeyUp: alt lock on");
-                                        altLock = true;
-                                        vibrate(2);
-
-                                        return true;
-                                    }else{
-                                        lastAltTime = System.currentTimeMillis();
-                                    }
-                                }
+                            }
+                            return true;
+                        } else {//check for double tap
+                            if ((System.currentTimeMillis() - lastShiftTime) < 800L) {
+                                Log.d(TAG, "onKeyUp: shift lock on");
+                                vibrate(2);
+                                shiftLock = true;
+                                return true;
+                            } else {
+                                lastShiftTime = System.currentTimeMillis();
                             }
                         }
-
-                        if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT){
-                            ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                            if(altLock)
-                                vibrate(1);
-                            altLock = false;
-                            if(shiftShortcut){
-                                shiftShortcut = false;
-                            }else{
-                                if(shiftLock){
-                                    if((System.currentTimeMillis() - lastShiftTime) > 300L){
-                                        Log.d(TAG, "onKeyUp: shift lock off");
-                                        shiftLock = false;
-                                        ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
-                                        vibrate(1);
-                                        return true;
-                                    }
-                                }else {//check for double tap
-                                    if((System.currentTimeMillis() - lastShiftTime) < 800L){
-                                        Log.d(TAG, "onKeyUp: shift lock on");
-                                        vibrate(2);
-                                        shiftLock = true;
-                                        return true;
-                                    }else{
-                                        lastShiftTime = System.currentTimeMillis();
-                                    }
-                                }
-                            }
-                        }
-                    } else if (current == mNumericKeyboard) {
-                        return super.onKeyUp(keyCode, event);
                     }
                 }
             }
         }
-
         return super.onKeyUp(keyCode, event);
     }
 
@@ -269,18 +244,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     // Implementation of KeyboardViewListener
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
-        Log.d(TAG, "onKey: "+primaryCode);
+        Log.d(TAG, "onKey: " + primaryCode);
         handleCharacter(primaryCode, keyCodes);
-//        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
-//            return;
-//        if (primaryCode == Keyboard.KEYCODE_CANCEL) {
-//            handleClose();
-//            return;
-//        }
-//
-//        else {
-//
-//        }
     }
 
 
@@ -288,13 +253,14 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
      * Main initialization of the input method component.  Be sure to call
      * to super class.
      */
-    @Override public void onCreate() {
+    @Override
+    public void onCreate() {
         Log.d(TAG, "onCreate: ");
         super.onCreate();
 //        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
         vibrationService = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
-    
+
     /**
      * This is the point where you can do all of your UI initialization.  It
      * is called after creation and any configuration change.
@@ -316,7 +282,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         mSymbolsShiftedKeyboard = new LatinKeyboard(this, R.xml.symbols_shift);
         mNumericKeyboard = new LatinKeyboard(this, R.xml.numpad);
     }
-    
+
     /**
      * Called by the framework when your view for creating input needs to
      * be generated.  This will be called the first time your input method
@@ -367,48 +333,48 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 // be doing predictive text (showing candidates as the
                 // user types).
                 mCurKeyboard = mQwertyKeyboard;
-                
+
                 // We now look for a few special variations of text that will
                 // modify our behavior.
 //                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
 //                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
 //                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
-                    // Do not display predictions / what the user is typing
-                    // when they are entering a password.
+                // Do not display predictions / what the user is typing
+                // when they are entering a password.
 //                    mPredictionOn = false;
 //                }
-                
+
 //                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
 //                        || variation == InputType.TYPE_TEXT_VARIATION_URI
 //                        || variation == InputType.TYPE_TEXT_VARIATION_FILTER) {
-                    // Our predictions are not useful for e-mail addresses
-                    // or URIs.
+                // Our predictions are not useful for e-mail addresses
+                // or URIs.
 //                    mPredictionOn = false;
 //                }
-                
+
 //                if ((attribute.inputType & InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
-                    // If this is an auto-complete text view, then our predictions
-                    // will not be shown and instead we will allow the editor
-                    // to supply their own.  We only show the editor's
-                    // candidates when in fullscreen mode, otherwise relying
-                    // own it displaying its own UI.
+                // If this is an auto-complete text view, then our predictions
+                // will not be shown and instead we will allow the editor
+                // to supply their own.  We only show the editor's
+                // candidates when in fullscreen mode, otherwise relying
+                // own it displaying its own UI.
 //                    mPredictionOn = false;
 //                    mCompletionOn = isFullscreenMode();
 //                }
-                
+
                 // We also want to look at the current state of the editor
                 // to decide whether our alphabetic keyboard should start out
                 // shifted.
 //                updateShiftKeyState(attribute);
                 break;
-                
+
             default:
                 // For all unknown input types, default to the alphabetic
                 // keyboard with no special features.
                 mCurKeyboard = mQwertyKeyboard;
 //                updateShiftKeyState(attribute);
         }
-        
+
         // Update the label on the enter key, depending on what the application
         // says it will do.
 //        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
@@ -424,20 +390,20 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         super.onFinishInput();
         altLock = false;
         shiftLock = false;
-        altShortcut=false;
+        altShortcut = false;
         mQwertyKeyboard.setCtrlState(false);
         if (mInputView != null) {
             mInputView.closing();
         }
     }
-    
+
     @Override
     public void onStartInputView(EditorInfo attribute, boolean restarting) {
         Log.d(TAG, "onStartInputView: ");
 //        keyboardViewRequested = true;
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
-        if(mInputView != null)
+        if (mInputView != null)
             mInputView.setKeyboard(mCurKeyboard);
 //        mInputView.closing();
     }
@@ -459,19 +425,19 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 
     @Override
     public void onText(CharSequence text) {
-        Log.d(TAG, "onText: "+text);
+        Log.d(TAG, "onText: " + text);
     }
 
     private void handleCharacter(int primaryCode, int[] keyCodes) {
-        if(primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
+        if (primaryCode == NOT_A_KEY || primaryCode == KEYCODE_CTRL)
             return;
 
         InputConnection ic = getCurrentInputConnection();
-        if(ic != null) {
-            if(mInputView != null){
+        if (ic != null) {
+            if (mInputView != null) {
                 LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-                if(current != null){
-                    switch (primaryCode){
+                if (current != null) {
+                    switch (primaryCode) {
                         case LatinKeyboardView.KEYCODE_EDITOR_ACTION:
                             sendDefaultEditorAction(true);
                             break;
@@ -479,42 +445,30 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                             cycleThroughKeyboardsLayers();
                             break;
                         case LatinKeyboardView.KEYCODE_LEFT:
-                            if(current.isCtrlOn()){
-                                KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, 0, KeyEvent.META_CTRL_ON);
-                                ic.sendKeyEvent(ke);
-                                KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                                ic.sendKeyEvent(ke);
-                            }else{
+                            if (current.isCtrlOn() || mIsCtrlPressed) {
+                                sendDownUpKeyEventsWithModifier(ic,new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT), KeyEvent.META_CTRL_ON);
+                            } else {
                                 sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT);
                             }
                             break;
                         case LatinKeyboardView.KEYCODE_RIGHT:
-                            if(current.isCtrlOn()){
-                                KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT, 0, KeyEvent.META_CTRL_ON);
-                                ic.sendKeyEvent(ke);
-                                KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                                ic.sendKeyEvent(ke);
-                            }else{
+                            if (current.isCtrlOn() || mIsCtrlPressed) {
+                                sendDownUpKeyEventsWithModifier(ic,new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT), KeyEvent.META_CTRL_ON);
+                            } else {
                                 sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT);
                             }
                             break;
                         case LatinKeyboardView.KEYCODE_UP:
-                            if(current.isCtrlOn()){
-                                KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP, 0, KeyEvent.META_CTRL_ON);
-                                ic.sendKeyEvent(ke);
-                                KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                                ic.sendKeyEvent(ke);
-                            }else{
+                            if (current.isCtrlOn()|| mIsCtrlPressed) {
+                                sendDownUpKeyEventsWithModifier(ic,new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP), KeyEvent.META_CTRL_ON);
+                            } else {
                                 sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_UP);
                             }
                             break;
                         case LatinKeyboardView.KEYCODE_DOWN:
-                            if(current.isCtrlOn()){
-                                KeyEvent ke = new KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN, 0, KeyEvent.META_CTRL_ON);
-                                ic.sendKeyEvent(ke);
-                                KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
-                                ic.sendKeyEvent(ke);
-                            }else{
+                            if (current.isCtrlOn()|| mIsCtrlPressed) {
+                                sendDownUpKeyEventsWithModifier(ic,new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN), KeyEvent.META_CTRL_ON);
+                            } else {
                                 sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_DOWN);
                             }
                             break;
@@ -552,10 +506,10 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         vibrate(0);
     }
 
-    public static int translateKeyToIndex(int keyCode){
-        Log.d(TAG, "translateKeyToIndex: "+keyCode);
+    public static int translateKeyToIndex(int keyCode) {
+        Log.d(TAG, "translateKeyToIndex: " + keyCode);
         int index = NOT_A_KEY; //used for bcksp alt etc, keys I dont wanna remap
-        switch (keyCode){
+        switch (keyCode) {
             case KeyEvent.KEYCODE_Q://row 1
                 index = 0;
                 break;
@@ -647,8 +601,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         return index;
     }
 
-    private void vibrate(int type){
-        switch (type){
+    private void vibrate(int type) {
+        switch (type) {
             case 0://key feedback
                 vibrationService.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
                 break;
@@ -656,15 +610,16 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 vibrationService.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
                 break;
             case 2://notification double
-                vibrationService.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L},new int[]{1,0,1},-1));
+                vibrationService.vibrate(VibrationEffect.createWaveform(new long[]{30L, 65L, 30L}, new int[]{1, 0, 1}, -1));
                 break;
 
         }
     }
-    private void cycleThroughKeyboardsLayers(){
-        if(mInputView != null){
+
+    private void cycleThroughKeyboardsLayers() {
+        if (mInputView != null) {
             LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
-            if(current != null){
+            if (current != null) {
                 current.setCtrlState(false);
                 if (current == mCurKeyboard) {
                     mInputView.setKeyboard(mSymbolsKeyboard);
@@ -675,5 +630,12 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 }
             }
         }
+    }
+
+    private void sendDownUpKeyEventsWithModifier(InputConnection ic, KeyEvent event, int MetaKey) {
+        KeyEvent ke = new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), event.getKeyCode(), event.getRepeatCount(), MetaKey, event.getDeviceId(), event.getScanCode());
+        ic.sendKeyEvent(ke);
+        ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
+        ic.sendKeyEvent(ke);
     }
 }
