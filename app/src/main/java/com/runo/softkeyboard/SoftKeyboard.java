@@ -75,6 +75,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 current = (LatinKeyboard) mInputView.getKeyboard();
             }
             //global key maps, run regardless of keyboard state, even if keyboard is not visible
+            if(keyCode == KeyEvent.KEYCODE_BACK)
+                return super.onKeyDown(keyCode, event); //zero reasons to remap this one
+
             if ((current != null && current.isCtrlOn()) || (mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))) {
                 sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_CTRL_ON); //TODO, move this down somehow so it can intercept other softkeyboard events
                 return true;
@@ -83,8 +86,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     handleCharacter('\t', null); //seems very helpful for now
                     return true;
                 } else {
-                    ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-                    return super.onKeyDown(keyCode, event);
+                    handleCharacter(' ', null); //seems very helpful for now
+                    return true;
                 }
             } else if (keyCode == KeyEvent.KEYCODE_DEL) {//I have decided that I fucking hate the default alt+backspace action, no I will not elaborate
                 if (event.isAltPressed()) { //if you really wanna delete the entire line/whatever the fuck alt+backspace feels like, here you go
@@ -117,6 +120,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
             //on screen keyboard based remaps
             else if (current == mQwertyKeyboard) {//global/default maps
                 if (altLock) {
+                    if(isExcludedFromAltMode(keyCode)){
+                        return super.onKeyDown(keyCode, event);
+                    }
                     sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_ALT_RIGHT_ON);
                     return true;
                 } else if (shiftLock) {
@@ -136,6 +142,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     return true;
                 }
             } else if (current == mNumericKeyboard) {//numeric keyboard remaps
+                if(isExcludedFromAltMode(keyCode)){
+                    return super.onKeyDown(keyCode, event);
+                }
                 sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_ALT_RIGHT_ON);
                 return true;
             }
@@ -240,6 +249,12 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         return super.onKeyUp(keyCode, event);
     }
 
+
+//    @Override
+//    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+//        Log.i(TAG, "onKeyLongPress: "+keyCode);
+//        return super.onKeyLongPress(keyCode, event);
+//    }
 
     // Implementation of KeyboardViewListener
     @Override
@@ -388,10 +403,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     public void onFinishInput() {
         Log.d(TAG, "onFinishInput: ");
         super.onFinishInput();
-        altLock = false;
-        shiftLock = false;
-        altShortcut = false;
-        mQwertyKeyboard.setCtrlState(false);
+
+        resetKeyboardState();
+
         if (mInputView != null) {
             mInputView.closing();
         }
@@ -402,6 +416,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         Log.d(TAG, "onStartInputView: ");
 //        keyboardViewRequested = true;
         super.onStartInputView(attribute, restarting);
+        resetKeyboardState();
         // Apply the selected keyboard to the input view.
         if (mInputView != null)
             mInputView.setKeyboard(mCurKeyboard);
@@ -637,5 +652,25 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         ic.sendKeyEvent(ke);
         ke = KeyEvent.changeAction(ke, KeyEvent.ACTION_UP);
         ic.sendKeyEvent(ke);
+    }
+    private boolean isExcludedFromAltMode(int keyCode){
+        switch(keyCode){
+            case KeyEvent.KEYCODE_SPACE:
+            case KeyEvent.KEYCODE_DEL:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void resetKeyboardState(){
+        Log.d(TAG, "resetKeyboardState: ");
+        altLock = false;
+        shiftLock = false;
+        altShortcut = false;
+        if (mInputView != null) {
+            LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
+            current.setCtrlState(false);
+        }
     }
 }
