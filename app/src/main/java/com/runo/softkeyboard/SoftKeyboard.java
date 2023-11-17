@@ -75,8 +75,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 current = (LatinKeyboard) mInputView.getKeyboard();
             }
             //global key maps, run regardless of keyboard state, even if keyboard is not visible
-            if(keyCode == KeyEvent.KEYCODE_BACK)
-                return super.onKeyDown(keyCode, event); //zero reasons to remap this one
 
             if ((current != null && current.isCtrlOn()) || (mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))) {
                 sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_CTRL_ON); //TODO, move this down somehow so it can intercept other softkeyboard events
@@ -126,6 +124,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_ALT_RIGHT_ON);
                     return true;
                 } else if (shiftLock) {
+                    if(isExcludedFromAltMode(keyCode)){
+                        return super.onKeyDown(keyCode, event);
+                    }
                     sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_SHIFT_ON);
                     return true;
                 }
@@ -393,6 +394,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         // Update the label on the enter key, depending on what the application
         // says it will do.
 //        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
+
     }
 
     /**
@@ -657,6 +659,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         switch(keyCode){
             case KeyEvent.KEYCODE_SPACE:
             case KeyEvent.KEYCODE_DEL:
+            case KeyEvent.KEYCODE_BACK:
                 return true;
             default:
                 return false;
