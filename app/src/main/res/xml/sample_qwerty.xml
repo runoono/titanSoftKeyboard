@@ -50,7 +50,7 @@
     </Row>
     
     <Row>
-        <Key android:codes="-1" android:keyIcon="@drawable/sym_keyboard_shift" 
+        <Key android:codes="-1" android:keyLabel="shift"
                 android:keyWidth="15%p" android:isModifier="true"
                 android:isSticky="true" android:keyEdgeFlags="left"/>
         <Key android:codes="122" android:keyLabel="z"/>
@@ -60,22 +60,22 @@
         <Key android:codes="98" android:keyLabel="b"/>
         <Key android:codes="110" android:keyLabel="n"/>
         <Key android:codes="109" android:keyLabel="m"/>
-        <Key android:codes="-5" android:keyIcon="@drawable/sym_keyboard_delete" 
+        <Key android:codes="-5" android:keyLabel="del"
                 android:keyWidth="15%p" android:keyEdgeFlags="right"
                 android:isRepeatable="true"/>
     </Row>
     
     <Row android:rowEdgeFlags="bottom">
-        <Key android:codes="-3" android:keyIcon="@drawable/sym_keyboard_done" 
+        <Key android:codes="-3" android:keyLabel="done"
                 android:keyWidth="15%p" android:keyEdgeFlags="left"/>
         <Key android:codes="-2" android:keyLabel="123" android:keyWidth="10%p"/>
         <!--
             android:codes: -101 is not a framework-defined key code but a key code that is
             privately defined in com.example.android.softkeyboard.LatinKeyboardView.
         -->
-        <Key android:codes="-101" android:keyIcon="@drawable/sym_keyboard_search"
+        <Key android:codes="-101" android:keyLabel="src"
                 android:keyWidth="10%p"/>
-        <Key android:codes="32" android:keyIcon="@drawable/sym_keyboard_space" 
+        <Key android:codes="32" android:keyLabel="  "
                 android:keyWidth="30%p" android:isRepeatable="true"/>
         <Key android:codes="46,44" android:keyLabel=". ,"
                 android:keyWidth="15%p"/>
