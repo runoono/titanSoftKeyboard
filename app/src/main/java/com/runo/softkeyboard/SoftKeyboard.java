@@ -74,6 +74,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
             if (mInputView != null) {
                 current = (LatinKeyboard) mInputView.getKeyboard();
             }
+
             //global key maps, run regardless of keyboard state, even if keyboard is not visible
 
             if ((current != null && current.isCtrlOn()) || (mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))) {
@@ -194,13 +195,16 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     if (shiftLock) {
                         vibrate(1);
                         shiftLock = false;
+                        hideStatusIcon();
                     }else if (altShortcut) {//key up was called after an alt shortcut ie alt + shift, alt + space
                         altShortcut = false;
+                        hideStatusIcon();
                     } else {
                         if (altLock) {
                             if ((System.currentTimeMillis() - lastAltTime) > 300L) {
                                 Log.d(TAG, "onKeyUp: alt lock off");
                                 altLock = false;
+                                hideStatusIcon();
                                 ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
                                 vibrate(1);
                             }
@@ -210,7 +214,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                                 Log.d(TAG, "onKeyUp: alt lock on");
                                 altLock = true;
                                 vibrate(2);
-
+                                showStatusIcon(R.drawable.right_arrow);
                                 return true;
                             } else {
                                 lastAltTime = System.currentTimeMillis();
@@ -222,13 +226,16 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                     if (altLock){
                         vibrate(1);
                         altLock = false;
+                        hideStatusIcon();
                     } else if (shiftShortcut) {
                         shiftShortcut = false;
+                        hideStatusIcon();
                     } else {
                         if (shiftLock) {
                             if ((System.currentTimeMillis() - lastShiftTime) > 300L) {
                                 Log.d(TAG, "onKeyUp: shift lock off");
                                 shiftLock = false;
+                                hideStatusIcon();
                                 ic.clearMetaKeyStates(KeyEvent.META_SHIFT_ON);
                                 vibrate(1);
                             }
@@ -238,6 +245,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                                 Log.d(TAG, "onKeyUp: shift lock on");
                                 vibrate(2);
                                 shiftLock = true;
+                                showStatusIcon(R.drawable.left_arrow);
                                 return true;
                             } else {
                                 lastShiftTime = System.currentTimeMillis();
@@ -332,7 +340,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
      */
     @Override
     public void onStartInput(EditorInfo attribute, boolean restarting) {
-        Log.d(TAG, "onStartInput: ");
+        Log.d(TAG, "onStartInput: "+isShowInputRequested());
         super.onStartInput(attribute, restarting);
 
         switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
