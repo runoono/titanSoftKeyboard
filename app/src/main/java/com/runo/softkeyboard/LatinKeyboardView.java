@@ -57,11 +57,11 @@ public class LatinKeyboardView extends KeyboardView {
 
 
 
-    void setSubtypeOnSpaceKey(final InputMethodSubtype subtype) {
-        final LatinKeyboard keyboard = (LatinKeyboard)getKeyboard();
-        keyboard.setSpaceIcon(getResources().getDrawable(subtype.getIconResId()));
-        invalidateAllKeys();
-    }
+//    void setSubtypeOnSpaceKey(final InputMethodSubtype subtype) {
+//        final LatinKeyboard keyboard = (LatinKeyboard)getKeyboard();
+//        keyboard.setSpaceIcon(getResources().getDrawable(subtype.getIconResId()));
+//        invalidateAllKeys();
+//    }
     private void setOptions(){
         this.setPreviewEnabled(false);
     }

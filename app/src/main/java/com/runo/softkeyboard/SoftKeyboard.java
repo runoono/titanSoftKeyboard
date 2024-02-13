@@ -76,8 +76,10 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
             }
 
             //global key maps, run regardless of keyboard state, even if keyboard is not visible
-
-            if ((current != null && current.isCtrlOn()) || (mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT))) {
+            if(mIsCtrlPressed && !(keyCode == KeyEvent.KEYCODE_UNKNOWN || keyCode == KeyEvent.KEYCODE_CTRL_LEFT)){
+                sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_CTRL_ON); //TODO, move this down somehow so it can intercept other softkeyboard events
+                return true;
+            }else if ((current != null && current.isCtrlOn())) {
                 sendDownUpKeyEventsWithModifier(ic, event, KeyEvent.META_CTRL_ON); //TODO, move this down somehow so it can intercept other softkeyboard events
                 return true;
             } else if (keyCode == KeyEvent.KEYCODE_SPACE) { //fix for alt+space bug that opens up android default symbol panel, not a fan, especially randomly
@@ -214,7 +216,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                                 Log.d(TAG, "onKeyUp: alt lock on");
                                 altLock = true;
                                 vibrate(2);
-                                showStatusIcon(R.drawable.right_arrow);
+                                showStatusIcon(R.drawable.alt_indicator);
                                 return true;
                             } else {
                                 lastAltTime = System.currentTimeMillis();
@@ -245,7 +247,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                                 Log.d(TAG, "onKeyUp: shift lock on");
                                 vibrate(2);
                                 shiftLock = true;
-                                showStatusIcon(R.drawable.left_arrow);
+                                showStatusIcon(R.drawable.shift_indicator);
                                 return true;
                             } else {
                                 lastShiftTime = System.currentTimeMillis();
@@ -257,6 +259,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         }
         return super.onKeyUp(keyCode, event);
     }
+
+
+
 
 
 //    @Override
@@ -358,6 +363,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 // user types).
                 mCurKeyboard = mQwertyKeyboard;
 
+
                 // We now look for a few special variations of text that will
                 // modify our behavior.
 //                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
@@ -398,7 +404,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 mCurKeyboard = mQwertyKeyboard;
 //                updateShiftKeyState(attribute);
         }
-
         // Update the label on the enter key, depending on what the application
         // says it will do.
 //        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions); //my eyes have been opened
@@ -679,6 +684,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         altLock = false;
         shiftLock = false;
         altShortcut = false;
+        hideStatusIcon();
         if (mInputView != null) {
             LatinKeyboard current = (LatinKeyboard) mInputView.getKeyboard();
             current.setCtrlState(false);
